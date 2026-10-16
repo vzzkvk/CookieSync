@@ -45,6 +45,7 @@ class CookieSyncContext {
         this.remoteRetryTimer = null;
         this.phase = 'idle';
         this.detail = '';
+        this.cookieReadProblem = null;
         this.error = '';
         this.configure(settings);
     }
@@ -64,6 +65,7 @@ class CookieSyncContext {
         if (!this.alive) return;
         this.phase = phase;
         this.detail = detail;
+        this.cookieReadProblem = null;
         if (phase === 'error') this.error = detail;
         else if (phase === 'online' || phase === 'idle') this.error = '';
         this.notify(this);
@@ -448,7 +450,7 @@ class CookieSyncContext {
                         throw new Error('Browser did not persist the expected cookie');
                     }
                 }
-                if (resolvedLogin && this.registered) this.setPhase('online');
+                if (this.registered && (resolvedLogin || this.cookieReadProblem !== null)) this.setPhase('online');
                 return true;
             } catch (error) {
                 console.warn(`[CookieSync] Cookie application failed for ${this.storeId}:`, error);
@@ -825,16 +827,32 @@ class CookieSyncContext {
             }
             const unique = new Map();
             for (const cookie of lists.flat()) unique.set(cookieKey(cookie), cookie);
-            const payload = selectSyncCookiePair([...unique.values()], this.settings.cookieDomains).map(pickCookieFields);
+            const snapshot = [...unique.values()];
+            const payload = selectSyncCookiePair(snapshot, this.settings.cookieDomains).map(pickCookieFields);
             if (payload.length !== 2 || hasExpiredCookies(payload)) {
+                const problem = describeCookiePairProblem(snapshot, this.settings.cookieDomains);
+                console.warn('[CookieSync] Cookie snapshot rejected:', {
+                    problem, storeId: this.storeId, domains: [...this.settings.cookieDomains],
+                    cookies: snapshot.filter(cookie => SYNC_COOKIE_NAMES.includes(cookie.name)).map(cookie => ({
+                        name: cookie.name, domain: cookie.domain, path: cookie.path, storeId: cookie.storeId,
+                        session: cookie.session, expirationDate: cookie.expirationDate,
+                    })),
+                });
                 if (!recovery && this.latestPayload.length === 2) await this.applyCookies(this.latestPayload, this.latestRevision);
-                if (current() && (this.initialPending || recovery)) this.setPhase('online', 'Cookies не отправлены: нужна полная пара ASP.NET_SessionId и ResoOffice60');
+                if (current() && (this.initialPending || recovery)) {
+                    const detail = `Cookies не отправлены: последнее чтение — ${problem}. Хранилище: ${this.storeId}; домены: ${this.settings.cookieDomains.join(', ')}`;
+                    this.setPhase('online', detail);
+                    this.cookieReadProblem = detail;
+                }
                 return;
             }
             if (recovery) {
                 clearTimeout(this.syncTimer);
                 this.syncTimer = null;
             }
+            // A previous snapshot error must not remain visible while a now-valid
+            // pair is already being sent and the correlated reply is pending.
+            this.setPhase('online', 'Пара cookies прочитана; отправка на сервер');
             const response = await this.sendCommand(recovery ? 'refresh' : 'set', payload, recovery);
             if (!current()) return;
             this.updateSyncStatus(response, Boolean(recovery));
@@ -842,7 +860,7 @@ class CookieSyncContext {
             console.warn(`[CookieSync] Cookie sync failed for ${this.storeId}:`, error);
             if (current() && this.pendingAuthSave) return; // Keep the storage-specific error and retry intent.
             if (current() && recovery && this.recovery === recovery) this.setPhase('error', `Обновление после входа не выполнено: ${error.message}. Проверьте версию сервера`);
-            else if (current() && this.initialPending) this.setPhase('online', 'Cookies не отправлены: ошибка чтения или отправки');
+            else if (current()) this.setPhase('online', 'Cookies не отправлены: ошибка чтения или отправки');
         } finally {
             if (submittedRecovery) submittedRecovery.inFlight = false;
         }

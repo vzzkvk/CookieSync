@@ -14,6 +14,7 @@ const {
     isCookieForSync,
     selectSyncCookiePair,
     hasExpiredCookies,
+    describeCookiePairProblem,
     describeConnectionFailure,
     pickCookieFields,
     buildCookieUrl,
@@ -115,6 +116,24 @@ test('selectSyncCookiePair: возвращает только полную од�
     assert.deepEqual(selectSyncCookiePair([asp], domains), []);
     assert.deepEqual(selectSyncCookiePair([asp, office, { ...office }], domains), []);
     assert.deepEqual(selectSyncCookiePair([asp, office], ['example.com']), []);
+});
+
+test('pair diagnostics distinguish missing cookies, ambiguity and expiration without exposing values', () => {
+    const asp = { name: 'ASP.NET_SessionId', domain: '.reso.ru', path: '/', value: 'secret-session' };
+    const office = { name: 'ResoOffice60', domain: '.reso.ru', path: '/', value: 'secret-office' };
+    const domains = ['reso.ru'];
+    assert.equal(describeCookiePairProblem([asp, office], domains, 2000), '');
+    assert.equal(describeCookiePairProblem([asp, { ...office, value: 'new-value' }], domains, 2000), '');
+    assert.equal(describeCookiePairProblem([asp], domains, 2000), 'не прочитаны ResoOffice60');
+    assert.equal(describeCookiePairProblem([asp, office], ['other.example'], 2000),
+        'не прочитаны ASP.NET_SessionId, ResoOffice60');
+    assert.equal(describeCookiePairProblem([asp, office, { ...office, domain: 'office.reso.ru' }], domains, 2000),
+        'несколько экземпляров ResoOffice60 (2)');
+    assert.equal(describeCookiePairProblem([asp, { ...office, expirationDate: 2 }], domains, 2000),
+        'истёк срок ResoOffice60');
+    assert.equal(describeCookiePairProblem([asp, { ...office, expirationDate: null }], domains, 2000),
+        'некорректный expirationDate у ResoOffice60');
+    assert.doesNotMatch(describeCookiePairProblem([asp, office, office], domains, 2000), /secret/);
 });
 
 test('describeConnectionFailure: распознаёт сервер, запущенный с --no-tls', () => {

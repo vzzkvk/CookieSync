@@ -235,6 +235,24 @@ function hasExpiredCookies(cookies, now = Date.now()) {
         && (!Number.isFinite(cookie.expirationDate) || cookie.expirationDate <= now / 1000));
 }
 
+/** Объясняет отказ выбора пары по последнему снимку, не включая значения cookies. */
+function describeCookiePairProblem(cookies, domains, now = Date.now()) {
+    const candidates = Array.isArray(cookies) ? cookies.filter(cookie => isCookieForSync(cookie, domains)) : [];
+    const counts = SYNC_COOKIE_NAMES.map(name => ({ name, count: candidates.filter(cookie => cookie.name === name).length }));
+    const missing = counts.filter(item => item.count === 0).map(item => item.name);
+    const duplicates = counts.filter(item => item.count > 1).map(item => `${item.name} (${item.count})`);
+    const invalidExpiry = new Set(candidates.filter(cookie => cookie.expirationDate !== undefined
+        && !Number.isFinite(cookie.expirationDate)).map(cookie => cookie.name));
+    const expired = new Set(candidates.filter(cookie => Number.isFinite(cookie.expirationDate)
+        && cookie.expirationDate <= now / 1000).map(cookie => cookie.name));
+    const problems = [];
+    if (missing.length) problems.push(`не прочитаны ${missing.join(', ')}`);
+    if (duplicates.length) problems.push(`несколько экземпляров ${duplicates.join(', ')}`);
+    if (invalidExpiry.size) problems.push(`некорректный expirationDate у ${[...invalidExpiry].join(', ')}`);
+    if (expired.size) problems.push(`истёк срок ${[...expired].join(', ')}`);
+    return problems.join('; ');
+}
+
 /**
  * Копирует переносимые поля cookie, исключая локальный storeId.
  * Отсутствующая expirationDate остаётся отсутствующей для сохранения session-семантики.
@@ -382,6 +400,7 @@ if (typeof module !== 'undefined' && module.exports) {
         isCookieForSync,
         selectSyncCookiePair,
         hasExpiredCookies,
+        describeCookiePairProblem,
         describeConnectionFailure,
         pickCookieFields,
         buildCookieUrl,

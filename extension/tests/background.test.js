@@ -48,6 +48,7 @@ async function background(options = {}) {
     const localWrites = [];
     const notices = [];
     const logs = [];
+    const logEntries = [];
     const state = {
         tabs: [normalTab], cookies: structuredClone(pair), contentScript: true,
         authenticated: true, injectionAllowed: true,
@@ -148,7 +149,10 @@ async function background(options = {}) {
     const sandbox = vm.createContext({
         Date: class extends Date { static now() { return state.now ?? Date.now(); } },
         browser, WebSocket: Socket, URL, crypto: { randomUUID }, structuredClone,
-        console: Object.fromEntries(['log', 'warn', 'error', 'debug'].map(level => [level, (...args) => logs.push(args.join(' '))])),
+        console: Object.fromEntries(['log', 'warn', 'error', 'debug'].map(level => [level, (...args) => {
+            logs.push(args.join(' '));
+            logEntries.push({ level, args });
+        }])),
         setTimeout: (callback, delay) => { const id = ++timerId; timers.set(id, { callback, delay }); return id; },
         clearTimeout: id => timers.delete(id),
     });
@@ -210,7 +214,7 @@ async function background(options = {}) {
         assert.ok(entry, `Expected a ${delay}ms timer`);
         timers.delete(entry[0]); entry[1].callback(); await settle();
     }
-    return { state, browser, sockets, sent, written, reads, authTabs, installed, localWrites, notices, logs,
+    return { state, browser, sockets, sent, written, reads, authTabs, installed, localWrites, notices, logs, logEntries,
         timers, context, request, view, save, register, fireTimer, settle, authState };
 }
 
@@ -296,6 +300,73 @@ test('an expired local pair is never sent to the server', async () => {
     assert.deepEqual(app.sent.map(request => request.command), ['register']);
     assert.equal(app.written.length, 0);
 });
+
+test('a valid pair replaces the previous snapshot error before the server replies', async () => {
+    const app = await background({ cookies: pair.slice(0, 1) });
+    const socket = await app.register();
+    await app.fireTimer(1500);
+    assert.match(app.context().detail, /не прочитаны ResoOffice60/);
+    const currentPair = [pair[0], { ...pair[1], value: 'new-office-value' }];
+    app.state.cookies = currentPair;
+    await app.browser.cookies.onChanged.emit({ cookie: { ...currentPair[1], storeId: '0' }, removed: false });
+    await app.fireTimer(1500);
+    const request = app.sent.at(-1);
+    assert.equal(request.command, 'set');
+    assert.deepEqual(request.payload, currentPair);
+    assert.equal(app.context().detail, 'Пара cookies прочитана; отправка на сервер');
+    assert.doesNotMatch(app.context().detail, /не прочитаны|нужна полная пара/);
+    await socket.message({ uuid: request.uuid, result: true, accepted: true, payload: currentPair, revision: 1 });
+    await app.settle();
+    assert.equal(app.context().detail, '');
+    assert.equal(app.timers.size, 0);
+});
+
+test('changing only one cookie is sent and a timeout replaces the sending status', async () => {
+    const app = await background();
+    await app.register(pair);
+    const currentPair = [{ ...pair[0], value: 'new-session-value' }, pair[1]];
+    app.state.cookies = currentPair;
+    await app.browser.cookies.onChanged.emit({ cookie: { ...currentPair[0], storeId: '0' }, removed: false });
+    await app.fireTimer(1500);
+    assert.deepEqual(app.sent.at(-1).payload, currentPair);
+    assert.equal(app.context().detail, 'Пара cookies прочитана; отправка на сервер');
+    await app.fireTimer(10000);
+    assert.equal(app.context().detail, 'Cookies не отправлены: ошибка чтения или отправки');
+});
+
+test('a successful server push clears an obsolete local pair warning without echoing cookies', async () => {
+    const app = await background({ cookies: pair.slice(0, 1) });
+    const socket = await app.register();
+    await app.fireTimer(1500);
+    assert.match(app.context().detail, /не прочитаны ResoOffice60/);
+    await socket.message({ command: 'set', payload: pair, revision: 1 });
+    await app.settle();
+    assert.equal(app.written.length, 2);
+    assert.equal(app.context().detail, '');
+    assert.equal(app.context().cookieReadProblem, null);
+    assert.ok(app.sent.every(request => request.command === 'register'));
+    assert.equal(app.timers.size, 0);
+});
+
+for (const [reason, cookies, expected] of [
+    ['missing', pair.slice(0, 1), /не прочитаны ResoOffice60/],
+    ['ambiguous', [...pair, { ...pair[1], domain: 'office.reso.ru' }], /несколько экземпляров ResoOffice60 \(2\)/],
+    ['expired', [pair[0], { ...pair[1], expirationDate: 2 }], /истёк срок ResoOffice60/],
+]) {
+    test(`cookie snapshot diagnostics describe ${reason} without logging values`, async () => {
+        const app = await background({ cookies, now: 2000 });
+        await app.register(); await app.fireTimer(1500);
+        assert.match(app.context().detail, expected);
+        assert.match(app.context().detail, /Хранилище: 0; домены: \.reso\.ru/);
+        const entry = app.logEntries.find(entry => entry.args[0] === '[CookieSync] Cookie snapshot rejected:');
+        assert.ok(entry);
+        assert.equal(entry.args[1].storeId, '0');
+        for (const cookie of entry.args[1].cookies) assert.equal('value' in cookie, false);
+        const diagnostic = JSON.stringify(entry.args);
+        for (const cookie of cookies) assert.equal(diagnostic.includes(cookie.value), false);
+        assert.ok(app.sent.every(request => request.command === 'register'));
+    });
+}
 
 test('an expired older revision cannot clear a newer accepted pair', async () => {
     const app = await background({ now: 2000 });
@@ -513,8 +584,8 @@ test('cookie halves from regular and private stores are never combined', async (
     await app.register(); await app.save(config('account_B'), 9); await app.register([], true, '1');
     await app.fireTimer(1500); await app.fireTimer(1500);
     assert.ok(app.sent.every(request => request.command === 'register'));
-    assert.match(app.context().detail, /полная пара/);
-    assert.match(app.context('1').detail, /полная пара/);
+    assert.match(app.context().detail, /не прочитаны ResoOffice60/);
+    assert.match(app.context('1').detail, /не прочитаны ASP.NET_SessionId/);
 });
 
 test('local cookie changes send the right pair to the right account over separate connections', async () => {
