@@ -1,8 +1,10 @@
-# Выпуск CookieSync для Chrome и Firefox
+# Releasing CookieSync for Chrome and Firefox
 
-## Собрать пакеты
+**English** | [Русский](RELEASE.ru.md)
 
-Нужны Python 3.11+ и Node.js 18+ (для тестов). Из корня проекта:
+## Build the packages
+
+You need Python 3.11+ and Node.js 18+ for tests. From the project root:
 
 ```bash
 python3 -m venv .venv
@@ -10,134 +12,134 @@ python3 -m venv .venv
 make release-extension
 ```
 
-Команда выполняет все серверные и клиентские тесты перед упаковкой.
-Результаты в `build/release/`:
+This runs all server and client tests before packaging. Results in `build/release/`:
 
-- `CookieSync-1.2.2-chrome.zip` — пакет Chrome;
-- `CookieSync-1.2.2-firefox-unsigned.zip` — **неподписанный** пакет Firefox;
-- `SHA256SUMS` — контрольные суммы этих архивов.
+- `CookieSync-1.2.2-chrome.zip` — Chrome package;
+- `CookieSync-1.2.2-firefox-unsigned.zip` — **unsigned** Firefox package;
+- `SHA256SUMS` — checksums for those archives.
 
-ZIP содержит только файлы расширения и инструкцию пользователя. `manifest.json`
-лежит в корне. Сервер, аккаунты, TLS-ключи, тесты и настройки разработчика
-в пакеты не включаются. Сборка не минифицирует собственный JS: исходники доступны
-для проверки. Повторная сборка одинаковых файлов даёт одинаковые ZIP.
+Each ZIP contains only extension files and `INSTALL.txt` (English) / `INSTALL.ru.txt` (Russian).
+Release builds use the respective `INSTALL_RELEASE.txt` / `INSTALL_RELEASE.ru.txt`
+sources. `manifest.json` is at the archive root. The server, accounts, TLS keys,
+tests and developer settings are excluded. Own JavaScript sources are not minified
+and are available for review. Rebuilding identical sources produces identical ZIPs.
 
-В обычной сборке (`python3 build_extension.py`) остаётся минимум Firefox 121;
-в релизной — Firefox 140+, чтобы работало встроенное уведомление о передаче
-данных `authenticationInfo`. Firefox ID `cookiesync@extension` сохраняется.
+A normal build (`python3 build_extension.py`) keeps the Firefox minimum at 121.
+A release build requires Firefox 140+ to support the built-in `authenticationInfo`
+data-transmission notice. The Firefox ID remains `cookiesync@extension`.
 
-Версия 1.2.0 использует серверную команду `refresh` с `expected_revision` для
-повторного входа. Сначала обновите `cookieserver/src` и перезапустите сервер,
-затем обновляйте расширения и вкладки РЕСО Офис. Обычные `register` и `set`
-остаются совместимыми с прежними клиентами.
+Version 1.2.0 uses the server command `refresh` with `expected_revision` for a new
+sign-in. Update `cookieserver/src` and restart the server first, then update the
+extensions and RESO Office tabs. Ordinary `register` and `set` remain compatible
+with previous clients.
 
-В 1.2.1 обычный `set` тоже требует регистрации в целевом аккаунте; штатные
-расширения уже соблюдают это условие. Очистка истёкших cookies сохраняет
-последнюю принятую ревизию. Для этих исправлений нужно обновить серверный код.
+In 1.2.1, ordinary `set` also requires registration in its target account; standard
+extensions already comply. Expired-cookie cleanup preserves the last accepted
+revision. These fixes require a server update.
 
-В 1.2.2 исправлены восстановление приватного контекста при старте worker,
-владение повторным `refresh` после reconnect и выключение при ошибочном URL.
-Серверный helper записи теперь выдерживает повторную отмену задачи; обновите
-`cookieserver/src/storage.py` и `cookieserver/src/commands.py` вместе.
+Version 1.2.2 fixes private-context restoration at worker startup, ownership of
+repeated `refresh` attempts after reconnect, and disabling with an invalid URL.
+The server write helper now withstands repeated task cancellation; update
+`cookieserver/src/storage.py` and `cookieserver/src/commands.py` together.
 
-## Текущий адрес и разрешения
+## Current address and permissions
 
-Адрес по умолчанию: **`ws://mnas:52314`**. Поддержка `ws://` оставлена по требованию
-для внутренней сети; `wss://` также поддерживается. Сохранённые пользователем
-настройки не перезаписываются при обновлении.
+Default address: **`ws://mnas:52314`**. Plain `ws://` support is retained for the
+internal network; `wss://` is also supported. Updates preserve user-saved settings.
 
-В текущем манифесте `host_permissions` содержит `*://*/*` для настраиваемых
-доменов cookies и адреса сервера. Контент-скрипт подключается по шаблону
-`*://*.reso.ru/*`; паттерн `*://.reso.ru` некорректен.
-Проверка входа выполняется только в `office.reso.ru`. Фоновый обработчик больше
-не выводит содержимое WebSocket-сообщений с cookies в консоль.
+The current manifest uses `host_permissions: ["*://*/*"]` for configurable cookie
+domains and server addresses. The content-script match pattern is `*://*.reso.ru/*`;
+`*://.reso.ru` is not a valid pattern. Authentication is checked only on
+`office.reso.ru`. The background handler no longer logs WebSocket cookie payloads
+to the console.
 
-**Граница текущей сборки:** это локально проверенные кандидаты на выпуск,
-а не уже опубликованные/подписанные дополнения. Для публикации/подписи магазины
-требуют защищённой передачи пользовательских данных. Передача сессионных cookies
-по `ws://` этому требованию не соответствует. Перед отправкой на модерацию
-нужно перевести сервер и клиент на обязательный `wss://`, включая запрет `ws://`
-в настройках/фоновой логике. Простая замена ZIP на XPI/CRX это не решает.
+**Current build status:** these are locally tested release candidates, not already
+published or signed add-ons. Store publication/signing requires secure transmission
+of user data. Sending session cookies over `ws://` does not meet that requirement.
+Before submitting for review, make `wss://` mandatory on both server and client,
+including rejecting `ws://` in settings/background logic. Renaming a ZIP to XPI
+or CRX does not address this.
 
-## Chrome: постоянная установка через магазин
+## Chrome: permanent installation through the store
 
-1. Зарегистрируйте аккаунт издателя в [Chrome Web Store Developer Dashboard](https://chrome.google.com/webstore/devconsole/).
-2. После подготовки защищённой конфигурации загрузите Chrome ZIP через **Add new item**.
-3. Заполните описание, назначение, сведения об обработке данных и разрешениях.
-   Для иконки можно использовать `extension/icon128.png`; сделайте скриншоты
-   интерфейса без реальных cookies/аккаунтов.
-4. Укажите публичную политику конфиденциальности и контакт поддержки.
-   Описание передачи данных ниже можно использовать как основу, дополнив
-   фактическими сведениями об операторе сервера и сроках хранения.
-5. Для распространения по ссылке выберите **Unlisted**, если этот вариант
-   доступен для вашего аккаунта. Он также требует модерации.
-6. Предоставьте проверяющим рабочий тестовый сервер и инструкцию проверки.
-7. После одобрения передавайте пользователям ссылку на расширение.
+1. Register a publisher account in
+   the [Chrome Web Store Developer Dashboard](https://chrome.google.com/webstore/devconsole/).
+2. After preparing the secure configuration, upload the Chrome ZIP using **Add new item**.
+3. Provide the description, purpose, data-handling details and permissions.
+   You can use `extension/icon128.png` as the icon. Take UI screenshots without
+   real cookies or accounts.
+4. Provide a public privacy policy and a support contact. The data description
+   below can serve as a starting point, completed with the actual server operator
+   and retention details.
+5. For link-based distribution, choose **Unlisted** if available for your account.
+   It also requires review.
+6. Give reviewers a working test server and testing instructions.
+7. After approval, distribute the extension link to users.
 
-Самостоятельно упакованный CRX не обеспечивает обычную установку в Chrome
-на Windows/macOS вне магазина. Для управляемых устройств есть корпоративные
-политики распространения; они настраиваются администратором организации.
+A self-packaged CRX does not provide a normal off-store installation on Chrome
+for Windows/macOS. Managed devices can use enterprise deployment policies,
+configured by the organization's administrator.
 
-## Firefox: подпись для самостоятельной раздачи
+## Firefox: signing for direct distribution
 
-1. Войдите в [Mozilla Developer Hub](https://addons.mozilla.org/developers/).
-2. Выберите отправку нового дополнения и вариант **On your own** /
-   самостоятельного распространения (unlisted), если публичная страница не нужна.
-3. Загрузите Firefox ZIP после подготовки защищённой конфигурации.
-4. Укажите сведения о передаче данных, контакты и инструкции проверки.
-   В манифесте уже объявлена передача `authenticationInfo`; не заменяйте её на `none`.
-5. После успешной проверки скачайте **подписанный `.xpi`** и передавайте его
-   пользователям. Они смогут установить его через `about:addons` → шестерёнка →
-   «Установить дополнение из файла» без режима отладки.
+1. Sign in to [Mozilla Developer Hub](https://addons.mozilla.org/developers/).
+2. Submit a new add-on and select **On your own** / unlisted distribution
+   if you do not need a public listing.
+3. Upload the Firefox ZIP after preparing the secure configuration.
+4. Provide data-transmission information, contacts and testing instructions.
+   The release manifest already declares `authenticationInfo`; do not replace it with `none`.
+5. After successful review, download the **signed `.xpi`** and distribute it.
+   Users can install it through `about:addons` → gear menu → Install Add-on From File
+   without debugging mode.
 
-У пакета должен сохраняться тот же `gecko.id` при всех обновлениях. При первом
-выпуске Mozilla проверяет уникальность ID. Если он уже занят другим издателем,
-понадобится собственный постоянный ID перед первой публикацией.
+Keep the same `gecko.id` across updates. Mozilla checks its uniqueness on the first
+release. If another publisher already uses that ID, choose your own permanent ID
+before the first publication.
 
-Для unlisted XPI автоматические обновления требуют отдельного HTTPS-манифеста
-обновлений и `gecko.update_url`; сейчас такой URL не настроен. Новые подписанные
-XPI можно распространять вручную. Публикация на AMO даёт обновления через AMO.
+Automatic updates for an unlisted XPI require a separate HTTPS update manifest
+and `gecko.update_url`; none is configured currently. New signed XPIs can be
+distributed manually. Publishing on AMO provides updates through AMO.
 
-## Данные и разрешения: информация для описания выпуска
+## Data and permissions: release-description information
 
-Фактическое поведение клиента:
+Actual client behavior:
 
-- Передаются `ASP.NET_SessionId` и `ResoOffice60` с атрибутами и именем аккаунта
-  на сервер, указанный пользователем. Другие клиенты того же аккаунта получают
-  эти cookies от сервера.
-- Обычные/контейнерные настройки (имя аккаунта, URL сервера, домены cookies,
-  переключатель) хранятся по cookie store в `storage.local.contextSettings`.
-  Приватные настройки хранятся только в RAM через `storage.session` и удаляются
-  после закрытия последнего приватного окна. Контексты не наследуют аккаунты
-  друг друга и используют отдельные WebSocket-соединения.
-- Содержимое страниц не отправляется: скрипт проверяет видимость окна входа
-  в `office.reso.ru` и возвращает логический результат.
-- `cookies` — чтение/применение пары; `storage` — настройки; `alarms` —
-  восстановление соединения; `scripting` — проверка входа во вкладках,
-  открытых до установки. Доступ к `reso.ru` нужен для cookies и скрипта,
-  доступ к `mnas` — для диагностики сетевого подключения.
-- Нет встроенной аналитики или рекламных запросов. Сервер хранит cookies
-  в JSON-файлах; автоматического срока удаления аккаунтов сейчас нет.
+- Sends `ASP.NET_SessionId` and `ResoOffice60`, their attributes, and the account
+  name to the user-selected server. Other clients of the same account receive
+  these cookies from the server.
+- Regular/container settings (account name, server URL, cookie domains and enabled
+  flag) are stored per cookie store in `storage.local.contextSettings`. Private
+  settings remain in RAM through `storage.session` and are removed after the last
+  private window closes. Contexts do not inherit each other's accounts and use
+  separate WebSocket connections.
+- Page contents are not sent. The script checks login-dialog visibility on
+  `office.reso.ru` and returns a boolean result.
+- `cookies` reads/applies the pair; `storage` saves settings; `alarms` restores
+  connections; `scripting` checks authentication in tabs opened before installation.
+  Access to `reso.ru` is needed for cookies and the script; access to `mnas`
+  is used for connection diagnostics.
+- There is no built-in analytics or advertising traffic. The server stores cookies
+  in JSON files; accounts currently have no automatic deletion period.
 
-Издатель должен дополнить публичную политику своими реальными реквизитами,
-контактом, условиями хранения/удаления и описанием доступа на своём сервере.
-Не заявляйте «данные не передаются»: передача cookies — основная функция.
+The publisher must complete the public policy with their actual identity,
+contacts, storage/deletion terms and server-access details. Do not claim that
+data is never transmitted: cookie transmission is the main feature.
 
-Включённая сторонняя библиотека: webextension-polyfill 0.12.0, MPL-2.0,
-[исходники](https://github.com/mozilla/webextension-polyfill/tree/0.12.0).
-Собственные файлы расширения поставляются без обфускации.
+Included third-party library: webextension-polyfill 0.12.0, MPL-2.0,
+[source](https://github.com/mozilla/webextension-polyfill/tree/0.12.0).
+Own extension files are shipped without obfuscation.
 
-## Проверка перед загрузкой пакетов
+## Validate before uploading
 
-Для локальной проверки Firefox ZIP можно распаковать и проверить Mozilla web-ext:
+For a local Firefox ZIP check, extract it and run Mozilla web-ext:
 
 ```bash
 python3 -m zipfile -e build/release/CookieSync-1.2.2-firefox-unsigned.zip build/firefox-review
 npx --yes web-ext@10.7.0 lint --source-dir build/firefox-review
 ```
 
-Линтер проверяет пакет, но не заменяет модерацию и подпись. Сборщик не обращается
-к аккаунтам Google/Mozilla и не публикует пакеты автоматически.
+Linting checks the package but does not replace review or signing. The builder
+does not access Google/Mozilla accounts or publish packages automatically.
 
-При следующем выпуске увеличьте `version` в `extension/manifest.json`, выполните
-тесты и сборку, затем обновите существующую запись издателя.
+For the next release, increase `version` in `extension/manifest.json`, run tests
+and build the packages, then update the existing publisher listing.

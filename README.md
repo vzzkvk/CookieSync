@@ -1,42 +1,52 @@
 # CookieSync
 
-CookieSync синхронизирует пару cookies РЕСО Офис между браузерными клиентами
-через Python WebSocket-сервер. Клиенты с одинаковым именем аккаунта на одном
-сервере используют общее хранилище; разные аккаунты и браузерные хранилища
-cookies позволяют разделять сессии.
+**English** | [Русский](README.ru.md)
+
+CookieSync synchronizes a pair of RESO Office cookies between browser clients
+through a Python WebSocket server. Clients using the same account name on the
+same server share stored cookies; different accounts and browser cookie stores
+allow independent sessions.
 
 ```text
-Браузер A ↔ CookieServer ↔ Браузер B
+Browser A ↔ CookieServer ↔ Browser B
 ```
 
-Версия расширения в [манифесте](extension/manifest.json) — **1.2.2**. README
-описывает текущие исходники, включая последующие исправления асинхронных операций.
-Для их распространения пересоберите пакеты из актуального кода: номер версии
-сам по себе не отличает такие сборки. Открытые ошибки перечислены в разделе
-[«Известные ограничения»](#известные-ограничения).
+The extension version in the [manifest](extension/manifest.json) is **1.2.2**.
+This README describes the current sources, including subsequent asynchronous-operation
+fixes. Rebuild packages from the current code to distribute those fixes: the version
+number alone does not distinguish these builds. Open issues are listed under
+[Known limitations](#known-limitations).
 
-## Документация
+## Documentation
 
-- [Сервер на Linux и systemd](cookieserver/LINUX.md).
-- [Сервер на Windows и автозапуск](cookieserver/WINDOWS.md).
-- [Локальная установка расширения](extension/INSTALL_RU.txt).
-- [Установка опубликованной или подписанной версии](extension/INSTALL_RELEASE_RU.txt).
-- [Сборка, подпись и распространение релиза](RELEASE.md).
+| Document                                    | English                             | Русский                                |
+|---------------------------------------------|-------------------------------------|----------------------------------------|
+| Linux server and systemd                    | [EN](cookieserver/LINUX.md)         | [RU](cookieserver/LINUX.ru.md)         |
+| Windows server and automatic startup        | [EN](cookieserver/WINDOWS.md)       | [RU](cookieserver/WINDOWS.ru.md)       |
+| Local extension installation                | [EN](extension/INSTALL.txt)         | [RU](extension/INSTALL.ru.txt)         |
+| Published or signed extension installation  | [EN](extension/INSTALL_RELEASE.txt) | [RU](extension/INSTALL_RELEASE.ru.txt) |
+| Building, signing and distributing releases | [EN](RELEASE.md)                    | [RU](RELEASE.ru.md)                    |
 
-## Требования
+English is the primary documentation language: unsuffixed files such as `README.md`
+and `INSTALL.txt` contain English; Russian translations use `.ru.md` / `.ru.txt`.
+Documentation is maintained in EN/RU pairs. When changing commands, requirements,
+behavior or known limitations, update both versions of the corresponding document.
+Extension archives include installation instructions in both languages.
 
-| Компонент                | Требования                                                                                                                     |
-|--------------------------|--------------------------------------------------------------------------------------------------------------------------------|
-| Сервер                   | Python 3.11+; в `.python-version` указан Python 3.13                                                                           |
-| Зависимости сервера      | [cookieserver/requirements.txt](cookieserver/requirements.txt), `websockets==16.1`                                             |
-| Chrome / Chromium / Edge | Версия 121 или новее                                                                                                           |
-| Firefox, обычная сборка  | Версия 121 или новее; временная установка неподписанного пакета                                                                |
-| Firefox, release-сборка  | Версия 140 или новее; для постоянной установки нужна подпись Mozilla                                                           |
-| Разработка и тесты       | Node.js 18+, зависимости из [requirements-dev.txt](requirements-dev.txt), `openssl` для TLS-тестов; `make` для команд Makefile |
+## Requirements
 
-## Быстрый запуск сервера
+| Component                | Requirements                                                                                                    |
+|--------------------------|-----------------------------------------------------------------------------------------------------------------|
+| Server                   | Python 3.11+; `.python-version` specifies Python 3.13                                                           |
+| Server dependencies      | [cookieserver/requirements.txt](cookieserver/requirements.txt), `websockets==16.1`                              |
+| Chrome / Chromium / Edge | Version 121 or later                                                                                            |
+| Firefox, normal build    | Version 121 or later; temporary installation of an unsigned package                                             |
+| Firefox, release build   | Version 140 or later; permanent installation requires Mozilla signing                                           |
+| Development and tests    | Node.js 18+, [requirements-dev.txt](requirements-dev.txt), `openssl` for TLS tests; `make` for Makefile targets |
 
-Все команды выполняются из корня репозитория. Пример для Linux:
+## Server quick start
+
+Run all commands from the repository root. Linux example:
 
 ```bash
 python3 -m venv .venv
@@ -44,218 +54,221 @@ python3 -m venv .venv
 .venv/bin/python -m cookieserver.manage runserver --no-tls
 ```
 
-С текущим конфигом сервер слушает `0.0.0.0:52314`. В расширении укажите `ws://<адрес-сервера>:52314`;
-на той же машине можно использовать `ws://127.0.0.1:52314`. Имя `mnas` из
-настройки расширения по умолчанию должно разрешаться в вашей сети/VPN.
+With the current configuration, the server listens on `0.0.0.0:52314`. Set
+`ws://<server-address>:52314` in the extension; on the same machine you can use
+`ws://127.0.0.1:52314`. The default hostname `mnas` must resolve in your network/VPN.
 
-Для Windows используйте команды из [отдельной инструкции](cookieserver/WINDOWS.md)
-и при необходимости [шаблон конфигурации](cookieserver/server_config.windows.conf.example).
-Linux-установщик рассчитан на `/opt/CookieSync` и создаёт `cookiesync.service`;
-подготовка окружения и режимы `--tls` / `--no-tls` описаны в [LINUX.md](cookieserver/LINUX.md).
+For Windows, follow the [dedicated guide](cookieserver/WINDOWS.md) and, if needed,
+use the [configuration template](cookieserver/server_config.windows.conf.example).
+The Linux installer targets `/opt/CookieSync` and creates `cookiesync.service`;
+environment setup and `--tls` / `--no-tls` modes are described in [LINUX.md](cookieserver/LINUX.md).
 
-### TLS и конфигурация
+### TLS and configuration
 
-Сервер читает [cookieserver/server_config.conf](cookieserver/server_config.conf),
-секцию `[server]`. После изменения параметров нужен перезапуск.
+The server reads the `[server]` section of
+[cookieserver/server_config.conf](cookieserver/server_config.conf).
+Restart it after changing settings.
 
-| Параметр                 | Значение в текущем конфиге | Назначение                                               |
-|--------------------------|----------------------------|----------------------------------------------------------|
-| `host`                   | `0.0.0.0`                  | Адрес прослушивания                                      |
-| `port`                   | `52314`                    | TCP-порт                                                 |
-| `ping_interval`          | `30`                       | Интервал протокольного WebSocket ping, секунды           |
-| `ping_timeout`           | `10`                       | Ожидание pong, секунды                                   |
-| `broadcast_timeout`      | `5`                        | Таймаут отправки одному получателю рассылки, секунды     |
-| `cookie_update_interval` | `300`                      | Интервал между разными принятыми парами cookies, секунды |
-| `max_size`               | `16384`                    | Максимальный размер входящего сообщения, байты           |
-| `encoding`               | `utf-8`                    | Кодировка файлов аккаунтов                               |
-| `log_level`              | `info`                     | Уровень журнала                                          |
+| Setting                  | Current config value | Purpose                                                   |
+|--------------------------|----------------------|-----------------------------------------------------------|
+| `host`                   | `0.0.0.0`            | Bind address                                              |
+| `port`                   | `52314`              | TCP port                                                  |
+| `ping_interval`          | `30`                 | WebSocket protocol ping interval, seconds                 |
+| `ping_timeout`           | `10`                 | Time to wait for pong, seconds                            |
+| `broadcast_timeout`      | `5`                  | Send timeout for one broadcast recipient, seconds         |
+| `cookie_update_interval` | `300`                | Interval between different accepted cookie pairs, seconds |
+| `max_size`               | `16384`              | Maximum incoming message size, bytes                      |
+| `encoding`               | `utf-8`              | Account-file encoding                                     |
+| `log_level`              | `info`               | Logging level                                             |
 
-**TLS включён по умолчанию.** Запуск без `--no-tls` требует PEM-сертификат и ключ.
-Пути задаются параметрами `cert` / `key` в конфиге или флагами `--cert` / `--key`.
-По умолчанию используются `cookieserver/keys/cert.pem` и `cookieserver/keys/key.pem`.
-Относительные пути разрешаются относительно рабочего каталога процесса.
+**TLS is enabled by default.** Starting without `--no-tls` requires a PEM certificate
+and key. Set paths with `cert` / `key` in the config or `--cert` / `--key` flags.
+Defaults are `cookieserver/keys/cert.pem` and `cookieserver/keys/key.pem`.
+Relative paths are resolved against the process working directory.
 
 ```bash
 .venv/bin/python -m cookieserver.manage runserver --cert /path/to/fullchain.pem --key /path/to/privkey.pem
 ```
 
-`ws://` соответствует запуску без TLS, `wss://` — с TLS. Для `wss://` браузеры
-должны доверять сертификату, а имя сервера в URL — соответствовать сертификату.
-`ws://` передаёт cookies без шифрования. Отдельного пароля или токена клиента
-в протоколе нет: доступ к серверу определяется сетевой конфигурацией, а имя
-аккаунта выбирает группу синхронизации.
+Use `ws://` without TLS and `wss://` with TLS. For `wss://`, browsers must trust the
+certificate and the URL hostname must match it. `ws://` transmits cookies without
+encryption. The protocol has no separate client password or token: network
+configuration controls access to the server, and the account name selects the
+synchronization group.
 
-### Аккаунты и данные
+### Accounts and data
 
-Аккаунт автоматически создаётся при первом `register` и сохраняется до успешного
-ответа клиенту. Существующий аккаунт сохраняет cookies, ревизию и интервал ожидания.
-Каждый аккаунт хранится в отдельном JSON-файле в `cookieserver/accounts/`.
+An account is automatically created on its first `register` and persisted before
+registration succeeds. An existing account retains its cookies, revision and
+cooldown. Each account has a JSON file in `cookieserver/accounts/`.
 
-- Новые имена: 1–64 буквы, цифры, `_` или `-`, не более 200 байт UTF-8.
-- Имена устройств Windows (`CON`, `NUL`, `COM1` и подобные) запрещены.
-- На клиентах одной группы используйте одинаковое имя и регистр букв.
-- Поле «Аккаунт» — группа CookieSync, а не логин пользователя РЕСО.
-- Один каталог аккаунтов должен обслуживаться одним экземпляром сервера.
-- Закрытие браузера не удаляет серверный аккаунт. Автоматического срока удаления
-  аккаунтов нет; очистка истёкшей пары сохраняет сам аккаунт и его ревизию.
+- New names allow 1–64 letters, digits, underscores or hyphens, up to 200 UTF-8 bytes.
+- Windows device names (`CON`, `NUL`, `COM1` and similar) are forbidden.
+- Clients in one group must use the same name and letter case.
+- The Account field selects a CookieSync group, not a RESO user login.
+- One accounts directory must be served by one server instance.
+- Closing a browser does not delete a server account. Accounts have no automatic
+  deletion period; expired-cookie cleanup preserves the account and its revision.
 
-Посмотреть имена аккаунтов без изменения файлов:
+List account names without modifying files:
 
 ```bash
 .venv/bin/python -m cookieserver.manage list_accounts
 .venv/bin/python -m cookieserver.manage --help
 ```
 
-Команд ручного создания и удаления аккаунтов в CLI нет. Перед переносом или
-резервным копированием остановите сервер и сохраните каталог аккаунтов, конфиг
-и TLS-ключи.
+The CLI has no manual account creation or deletion commands. Before moving or
+backing up the server, stop it and save the accounts directory, configuration and TLS keys.
 
-## Установка и настройка расширения
+## Extension installation and setup
 
-Для локальной установки используйте обычные архивы из раздела сборки:
+For local installation, use the normal archives described in the build section:
 
-- **Chrome / Chromium / Edge:** распакуйте `CookieSync-1.2.2-chromium.zip`, включите режим
-  разработчика на странице расширений и выберите «Загрузить распакованное».
-- **Firefox:** распакуйте `CookieSync-1.2.2-firefox.zip` и загрузите `manifest.json` через
-  `about:debugging#/runtime/this-firefox`. Временное дополнение удаляется после
-  перезапуска браузера. Постоянная установка требует подписанного XPI или AMO.
+- **Chrome / Chromium / Edge:** extract `CookieSync-1.2.2-chromium.zip`, enable
+  Developer mode on the extensions page, and choose Load unpacked.
+- **Firefox:** extract `CookieSync-1.2.2-firefox.zip` and load `manifest.json`
+  through `about:debugging#/runtime/this-firefox`. A temporary add-on is removed
+  after a browser restart. Permanent installation requires a signed XPI or AMO.
 
-Для опубликованной версии используйте ссылку на Chrome Web Store, AMO или
-подписанный XPI, предоставленные издателем. Локальная release-сборка сама по себе
-не публикует и не подписывает дополнение; подробности — в [RELEASE.md](RELEASE.md).
+For a published version, use the Chrome Web Store or AMO link, or the signed XPI
+provided by the publisher. A local release build does not publish or sign the
+extension; see [RELEASE.md](RELEASE.md).
 
-После установки:
+After installation:
 
-1. Откройте нужную вкладку и окно CookieSync на панели расширений.
-2. Укажите аккаунт своей группы и адрес сервера. По умолчанию — `ws://mnas:52314`.
-3. Оставьте домен `.reso.ru`, если администратор не указал другой список.
-4. Разрешите расширению доступ к сайту, откройте `office.reso.ru` и выполните вход.
-5. Включите синхронизацию и проверьте статус. Popup можно закрыть: соединением
-   и cookies управляет фоновый код.
+1. Open the desired tab and the CookieSync toolbar popup.
+2. Set your group's account and server address. The default is `ws://mnas:52314`.
+3. Keep the domain `.reso.ru` unless your administrator supplies another list.
+4. Grant site access, open `office.reso.ru`, and sign in.
+5. Enable synchronization and check the status. You can close the popup: background
+   code manages the connection and cookies.
 
-Сохранённые настройки имеют приоритет над значениями по умолчанию. Для изменения
-полей сначала выключите синхронизацию в выбранном контексте. Выключение доступно
-даже при ошибочном URL или пустом аккаунте; переключатель показывает подтверждённое
-фоновым процессом состояние.
+The current UI labels are Russian: Account is `Аккаунт`, Server is `Сервер`,
+Cookie domains is `Домены куки`, and Enable is `Включить`.
 
-Статус «Онлайн» означает успешную регистрацию на CookieServer. Он не является
-подтверждением действительности сессии РЕСО или завершения всех записей cookies:
-учитывайте пояснение рядом со статусом и сообщения об ошибках.
+Saved settings take precedence over defaults. Disable synchronization in the selected
+context before editing its fields. Disabling remains available with an invalid URL
+or empty account; the toggle reflects the state confirmed by the background process.
 
-Диагностика пары относится к последнему чтению cookies в указанном хранилище
-и доменах: отдельно сообщаются непрочитанное имя, неоднозначный набор и проблема
-со сроком действия. Когда корректная пара прочитана, статус сразу меняется на
-«Пара cookies прочитана; отправка на сервер», ещё до ответа сервера. Изменение
-одной cookie не требует одновременного изменения второй. Подробности отказа
-записываются в журнал background без значений cookies. Успешное применение
-серверной пары также снимает устаревшее предупреждение о локальном чтении.
+Online (`Онлайн`) means successful registration with CookieServer. It does not
+confirm that the RESO session is valid or every cookie write is complete: read
+the accompanying detail and any error messages.
 
-### Обычные, приватные контексты и контейнеры
+Pair diagnostics describe the last cookie read in the indicated store and domains.
+Missing names, ambiguous selections and expiration problems are reported separately.
+Once a valid pair is read, the status immediately changes to Cookies read; sending
+to server (`Пара cookies прочитана; отправка на сервер`), before the server replies.
+Changing one cookie does not require changing the other simultaneously. Background
+rejection diagnostics exclude cookie values. Successfully applying a server pair
+also clears an obsolete local-read warning.
 
-Каждое браузерное хранилище cookies (*cookie store*) — отдельный клиент со своими
-настройками, WebSocket, UUID-запросами, ревизией, очередями и таймерами. Popup
-выбирает контекст по активной вкладке.
+### Regular, private and container contexts
 
-| Контекст                    | Хранение настроек                           | Время жизни                             |
-|-----------------------------|---------------------------------------------|-----------------------------------------|
-| Обычный / контейнер Firefox | `storage.local.contextSettings`             | Сохраняются между запусками браузера    |
-| Приватный / инкогнито       | RAM, через `storage.session`, если доступно | До закрытия последней приватной вкладки |
+Each browser *cookie store* is a separate client with its own settings, WebSocket,
+UUID requests, revision, queues and timers. The popup selects the context from
+the active tab.
 
-Для независимых сессий задайте, например, `account_A` в обычном окне и `account_B`
-в приватном, включив оба контекста отдельно. Предварительно разрешите расширению
-работу в инкогнито/InPrivate или приватных окнах Firefox. При одинаковом сервере
-и аккаунте контексты намеренно участвуют в одной серверной группе.
+| Context                     | Settings storage                              | Lifetime                          |
+|-----------------------------|-----------------------------------------------|-----------------------------------|
+| Regular / Firefox container | `storage.local.contextSettings`               | Persists across browser restarts  |
+| Private / incognito         | RAM, through `storage.session` when available | Until the last private tab closes |
 
-Несколько приватных окон одного профиля обычно разделяют один cookie store.
-После закрытия последней приватной вкладки следующий приватный сеанс начинается
-с пустым аккаунтом и выключенной синхронизацией. Для дополнительных независимых
-контекстов подходят отдельные профили и контейнеры Firefox.
+For independent sessions, set `account_A` in a regular window and `account_B`
+in a private window, enabling each separately. First allow the extension to run
+in incognito/InPrivate or Firefox private windows. Contexts using the same server
+and account intentionally join the same server group.
 
-## Как работает синхронизация
+Several private windows in one profile usually share one cookie store. After the
+last private tab closes, a new private session starts with an empty account and
+synchronization disabled. Use separate profiles or Firefox containers for
+additional independent contexts.
 
-### Пара cookies и проверка входа
+## How synchronization works
 
-Синхронизируются только **`ASP.NET_SessionId`** и **`ResoOffice60`** в настроенных
-доменах. Требуется полная, однозначная пара. Домен сопоставляется точно или по
-границе поддомена: `sub.reso.ru` подходит для `reso.ru`, а `evilreso.ru` — нет.
-Передаются значения и атрибуты cookies, включая `path`, `secure`, `httpOnly`,
-`sameSite`, `hostOnly` и `expirationDate`, когда они присутствуют. Локальный
-`storeId` в серверную нагрузку не включается.
+### Cookie pair and authentication check
 
-Перед отправкой клиент проверяет вход во вкладках **того же cookie store**.
-Критерий — документ уже не находится в состоянии `loading`, а окно логина
-`#clbkAuth_ASPxPopupControl1_loginTitle2` на `office.reso.ru` отсутствует или скрыто.
-Это DOM-эвристика, а не проверка сессии через API РЕСО. Настройка другого домена
-cookies не меняет сайт проверки входа. У проверки есть известная гонка при
-закрытии вкладки — см. [ограничения](#известные-ограничения).
+Only **`ASP.NET_SessionId`** and **`ResoOffice60`** in the configured domains are
+synchronized. A complete, unambiguous pair is required. Domains match exactly
+or at a subdomain boundary: `sub.reso.ru` matches `reso.ru`, but `evilreso.ru` does not.
+Values and cookie attributes are transferred, including `path`, `secure`, `httpOnly`,
+`sameSite`, `hostOnly` and `expirationDate` when present. Local `storeId` is not
+included in the server payload.
 
-### Регистрация и обычное обновление
+Before uploading, the client checks authentication in tabs of **the same cookie store**.
+The document must no longer be `loading`, and the login dialog
+`#clbkAuth_ASPxPopupControl1_loginTitle2` on `office.reso.ru` must be absent or hidden.
+This is a DOM heuristic, not a RESO API session check. Configuring another cookie
+domain does not change the authentication site. There is a known race when a tab
+closes; see [Known limitations](#known-limitations).
 
-1. При включении контекст открывает долгоживущий WebSocket и отправляет `register`.
-2. Если аккаунт пуст, клиент пытается отправить текущую локальную пару после
-   проверки входа. Если на сервере есть пара, применяется серверное состояние
-   с учётом ревизии, срока действия и активной попытки повторного входа.
-3. Локальные изменения cookies обрабатываются с debounce **1500 мс**. Ожидаемые
-   события от применения серверной пары подавляются, чтобы не создавать эхо.
-4. Обычный `set` соблюдает `cookie_update_interval`. Изменение пары увеличивает
-   ревизию и запускает интервал заново; идентичная пара принимается без записи
-   и без продления интервала. При отказе клиент получает актуальную серверную пару.
-5. Изменённая пара рассылается другим зарегистрированным клиентам аккаунта;
-   отправитель получает отдельный ответ на свой запрос.
+### Registration and ordinary updates
 
-Перед чтением локальной пары клиент дожидается очереди применения cookies.
-Если за время чтения изменились серверная ревизия или очередь, снимок отбрасывается,
-в том числе при `cookie_update_interval = 0`. Истечение одной половины делает
-непригодной всю пару: сервер проверяет её при загрузке и во время обработки
-`register` / `set` / `refresh`, очищая cookies и cooldown с сохранением ревизии.
-Клиент повторно проверяет срок жизни перед отложенными записями и повторами.
+1. Enabling a context opens a long-lived WebSocket and sends `register`.
+2. If the account is empty, the client attempts to upload its current local pair
+   after checking authentication. If the server has a pair, its state is applied
+   subject to revision, expiration and any active reauthentication attempt.
+3. Local cookie changes use a **1500 ms** debounce. Expected events caused by
+   applying server cookies are suppressed to prevent echo loops.
+4. Ordinary `set` honors `cookie_update_interval`. A changed pair advances the
+   revision and restarts the interval; an identical pair is accepted without a
+   write or extension of the interval. A rejected update returns the current server pair.
+5. A changed pair is broadcast to other registered clients of the account.
+   The sender receives a separate reply to its request.
 
-### Повторный вход и восстановление
+The client drains the cookie-application queue before reading a local pair.
+If the server revision or application queue changes during that read, the snapshot
+is discarded, including when `cookie_update_interval = 0`. If either cookie expires,
+the entire pair becomes unusable. The server checks it on load and during
+`register` / `set` / `refresh`, clearing cookies and cooldown while retaining the
+revision. The client rechecks expiration before queued writes and retries.
 
-При появлении окна логина клиент закрепляет известную серверную ревизию.
-Когда окно исчезает, свежая пара отправляется командой `refresh`, даже если
-cookies изменились раньше перехода DOM.
+### Signing in again and recovery
 
-- Сервер сравнивает `expected_revision` под блокировкой аккаунта. Только совпадение
-  разрешает обойти cooldown; добавление этого поля к обычному `set` его не обходит.
-- Старая пара удерживается от применения на время повторного входа. Более новая
-  серверная ревизия побеждает; устаревшая попытка автоматически не перебазируется.
-- Известная ревизия и наблюдения входа сохраняются в `storage.session` без значений
-  cookies. Восстановление учитывает настройки и живые HTTP- и HTTPS-вкладки `office.reso.ru`.
-- Runtime-события и ответы опроса DOM проходят через общую очередь контекста.
-  Перед каждой записью cookies обрабатываются уже полученные наблюдения.
-- После ошибки сохранения метаданных завершённого входа отложенный `refresh`
-  повторяет сохранение на keepalive или дубликате события. Отправка возобновляется
-  после успешной записи с исходной ревизией; устаревшие действия отменяются при
-  смене настроек, уходе вкладки или победе новой серверной ревизии.
-- Для поздних ответов сохраняются метаданные последних **32** просроченных `refresh`
-  текущего соединения. Ответ может завершить только свою попытку, включая случай
-  идентичной пары без увеличения ревизии.
+When the login dialog appears, the client pins the known server revision.
+When it disappears, a fresh pair is sent with `refresh`, even if cookies changed
+before the DOM transition.
 
-Переподключение планируется через **5 секунд**. Alarm с периодом **0,5 минуты**
-пробуждает background для восстановления соединения и повторов незавершённого
-сохранения входа. Серверный протокольный ping работает независимо от него;
-прикладной команды `ping` нет.
+- The server compares `expected_revision` under the account lock. Only a match
+  bypasses cooldown; adding the field to ordinary `set` does not bypass it.
+- The old pair is held back during reauthentication. A newer server revision wins;
+  a stale attempt is not automatically rebased onto it.
+- The known revision and login observations are stored in `storage.session`
+  without cookie values. Restoration checks settings and surviving HTTP and HTTPS
+  tabs on `office.reso.ru`.
+- Runtime notifications and DOM query replies share a per-context queue.
+  Received observations are processed before each cookie write.
+- If saving metadata for a completed login fails, the deferred `refresh` retries
+  persistence on keepalive or a duplicate observation. Upload resumes after a
+  successful save with the original revision. Settings changes, tab departure or
+  a winning server revision retire obsolete actions.
+- Metadata for the latest **32** timed-out `refresh` requests on the current
+  connection is retained for late replies. A reply can complete only its own
+  attempt, including an identical pair that does not advance the revision.
 
-На сервере критические операции сериализуются под `account.lock`, а файловые записи
-выполняются вне event loop. Даже повторная отмена запроса не освобождает lock до
-завершения записи. Ошибка или таймаут рассылки прерывает транспорт получателя
-без ожидания закрывающего handshake под блокировкой аккаунта.
+Reconnect is scheduled after **5 seconds**. An alarm with a **0.5-minute** period
+wakes the background context to restore connections and retry unfinished login-state
+persistence. The server's protocol ping runs independently; there is no application
+`ping` command.
 
-## WebSocket-протокол
+Critical server operations are serialized under `account.lock`, and file writes
+run outside the event loop. Even repeated request cancellation does not release
+the lock before the write finishes. Broadcast failure or timeout aborts the
+recipient's transport without waiting for a closing handshake under the account lock.
 
-Сообщения передаются как JSON в текстовых кадрах. Каждый запрос содержит `uuid`;
-ответ возвращает то же значение. Серверный push имеет `command: "set"` и не требует
-UUID. Значение `result: true` означает обработанный запрос, а `accepted: false`
-в ответе обновления — отказ из-за cooldown или конфликта ревизий.
+## WebSocket protocol
 
-| Команда    | Назначение                                                                                          |
-|------------|-----------------------------------------------------------------------------------------------------|
-| `register` | Получить или создать аккаунт, зарегистрировать соединение, вернуть cookies, ревизию и `retry_after` |
-| `set`      | Обновить полную пару с соблюдением интервала; требуется регистрация в аккаунте                      |
-| `refresh`  | Условно обновить пару после входа; требуется регистрация и целое `expected_revision >= 0`           |
+Messages are JSON in text frames. Every request has a `uuid`, and the reply echoes
+that exact value. A server push uses `command: "set"` and does not require a UUID.
+`result: true` means the request was processed; `accepted: false` on an update
+means it was rejected because of cooldown or a revision conflict.
 
-Пример запроса повторного входа:
+| Command    | Purpose                                                                                                   |
+|------------|-----------------------------------------------------------------------------------------------------------|
+| `register` | Get or create the account, register the connection, return cookies, revision and `retry_after`            |
+| `set`      | Update a complete pair while honoring the interval; requires registration in the account                  |
+| `refresh`  | Conditionally replace the pair after login; requires registration and an integer `expected_revision >= 0` |
+
+Example reauthentication request:
 
 ```json
 {
@@ -280,132 +293,132 @@ UUID. Значение `result: true` означает обработанный 
 }
 ```
 
-Ответ включает `result`, `message`, тот же `uuid`, `payload`, `accepted`, `revision`
-и `retry_after` в секундах. При конфликте возвращаются текущие данные аккаунта.
+The reply includes `result`, `message`, the same `uuid`, `payload`, `accepted`,
+`revision` and `retry_after` in seconds. A conflict returns the current account data.
 
-## Сборка расширения
+## Building the extension
 
-[Сборщик](build_extension.py) использует стандартную библиотеку Python и берёт
-версию из `extension/manifest.json`, а не из корневого `VERSION`. Браузерные
-манифесты формируются отдельно; архивы содержат файлы расширения и инструкцию,
-без сервера, аккаунтов, TLS-ключей и тестов. Для одинаковых исходников ZIP
-воспроизводимы; рядом записывается `SHA256SUMS`.
+The [builder](build_extension.py) uses Python's standard library and reads the
+version from `extension/manifest.json`, not the root `VERSION` file. It generates
+browser-specific manifests. Archives contain extension files and instructions,
+excluding the server, accounts, TLS keys and tests. ZIPs are reproducible for
+identical sources; `SHA256SUMS` is written alongside them.
 
-### Локальная сборка
+### Local build
 
 ```bash
 python3 build_extension.py
-# Эквивалентная цель Makefile:
+# Equivalent Makefile target:
 make build-extension
 ```
 
-Результаты в `build/`:
+Results in `build/`:
 
-- `CookieSync-1.2.2-chromium.zip` — распакованная установка Chrome / Chromium / Edge;
-- `CookieSync-1.2.2-firefox.zip` — временная установка Firefox 121+;
+- `CookieSync-1.2.2-chromium.zip` — unpacked installation in Chrome / Chromium / Edge;
+- `CookieSync-1.2.2-firefox.zip` — temporary installation in Firefox 121+;
 - `SHA256SUMS`.
 
-### Кандидаты на выпуск
+### Release candidates
 
-После установки зависимостей для тестов:
+After installing test dependencies:
 
 ```bash
 make release-extension
 ```
 
-Команда выполняет тесты и создаёт в `build/release/`:
+This runs tests and creates the following in `build/release/`:
 
 - `CookieSync-1.2.2-chrome.zip`;
-- `CookieSync-1.2.2-firefox-unsigned.zip` — Firefox 140+, объявлена передача `authenticationInfo`;
+- `CookieSync-1.2.2-firefox-unsigned.zip` — Firefox 140+, declares `authenticationInfo` transmission;
 - `SHA256SUMS`.
 
-Прямой вызов `python3 build_extension.py --release` выполняет только упаковку,
-без тестов. Флаг `--output <каталог>` меняет базовый каталог результатов.
-Внутри любого ZIP инструкция называется `INSTALL_RU.txt`; для release берётся
-текст из [INSTALL_RELEASE_RU.txt](extension/INSTALL_RELEASE_RU.txt).
-Подпись, публикация, настройки защищённой передачи данных и обновления описаны
-в [RELEASE.md](RELEASE.md).
+Running `python3 build_extension.py --release` directly only packages the extension;
+it does not run tests. `--output <directory>` changes the base output directory.
+Every ZIP contains `INSTALL.txt` (English) and `INSTALL.ru.txt` (Russian). Release builds use
+[INSTALL_RELEASE.txt](extension/INSTALL_RELEASE.txt) and
+[INSTALL_RELEASE.ru.txt](extension/INSTALL_RELEASE.ru.txt) under those same archive names.
+Signing, publication, secure data-transmission configuration and updates are covered
+in [RELEASE.md](RELEASE.md).
 
-## Разработка и проверки
+## Development and checks
 
-В существующее виртуальное окружение установите зависимости для разработки:
+Install development dependencies into the existing virtual environment:
 
 ```bash
 .venv/bin/python -m pip install -r requirements-dev.txt
 make test
 ```
 
-`make test` запускает pytest для сервера и сборщика, затем встроенный тестовый
-runner Node.js для расширения. Для TLS-тестов нужен `openssl`. Отдельные проверки:
+`make test` runs pytest for the server and builder, then Node's built-in test runner
+for the extension. TLS tests require `openssl`. Individual checks:
 
 ```bash
 make test-server
 make test-extension
-# Без make, из корня проекта:
+# Without make, from the project root:
 .venv/bin/python -m pytest -q cookieserver/tests tests
 node --test
 ```
 
-Makefile автоматически использует `.venv/bin/python`, если он доступен.
-Интерпретатор можно задать явно: `make test PYTHON=/путь/к/python`.
-Ручной запуск сервера: `make run_server ARGS=--no-tls`; без `ARGS` используется TLS.
+The Makefile automatically uses `.venv/bin/python` when available. To override it,
+use `make test PYTHON=/path/to/python`. Start the server manually with
+`make run_server ARGS=--no-tls`; without `ARGS`, TLS is enabled.
 
-Для исходников коммита `dd840a5` прошли **119 Python- и 167 JavaScript-тестов**.
-Клиентские проверки гонок используют VM и управляемые браузерные API; проверки
-освобождения памяти дополнительно запускают Node/V8 с принудительной сборкой мусора.
-Зелёный набор тестов не покрывает все сценарии реального браузера: ниже перечислены
-подтверждённые открытые ошибки.
+For sources at commit `dd840a5`, **119 Python and 167 JavaScript tests** passed.
+Client race tests use a VM with controlled browser APIs. Memory-release checks also
+run Node/V8 with forced garbage collection. Passing tests do not cover every real
+browser scenario; confirmed open issues are listed below.
 
-## Известные ограничения
+## Known limitations
 
-По результатам аудита `dd840a5` следующие ошибки **ещё не исправлены**:
+The audit of `dd840a5` confirmed the following **unfixed** issues:
 
-1. **Устаревшее подтверждение входа при закрытии вкладки.** Если последняя
-   подтвердившая вход вкладка РЕСО Офис закрывается или уходит на другой сайт
-   во время чтения cookies, обычный `set` всё ещё может быть отправлен на основании
-   прежнего подтверждения. Проверка ревизии и очереди cookies эту гонку не устраняет.
-2. **Потеря обычного `set` после ошибки сохранения метаданных.** Если проверка входа
-   впервые получает состояние нового документа и его запись в `storage.session`
-   завершается ошибкой, текущая отправка может быть потеряна. После восстановления
-   хранилища ошибка снимается, но обычный `set` автоматически не возобновляется.
-   Исправленный повтор `refresh` при завершении повторного входа — другой сценарий.
+1. **Stale authentication confirmation after a tab closes.** If the last RESO Office
+   tab that confirmed login closes or navigates to another site while cookies are
+   being read, ordinary `set` can still be sent using its previous confirmation.
+   Revision and cookie-queue checks do not eliminate this race.
+2. **Ordinary `set` lost after a metadata persistence error.** If authentication
+   checking first observes a new document and saving it to `storage.session` fails,
+   the current upload can be lost. Storage recovery clears the error but does not
+   automatically resume ordinary `set`. The fixed `refresh` retry after completing
+   a new login is a different scenario.
 
-Оба случая воспроизведены в Node/VM. Они относятся к клиентским методам
-`isAuthenticated()`, `syncCookies()` и сохранению наблюдений в `sync-context.js`.
+Both cases were reproduced in Node/VM. They concern `isAuthenticated()`,
+`syncCookies()` and observation persistence in `sync-context.js`.
 
-## Обновление
+## Updating
 
-1. Остановите сервер, сохраните аккаунты, конфиг и ключи, обновите код и зависимости.
-2. Запустите сервер с прежним режимом TLS и проверьте подключение.
-3. Соберите и установите расширение из актуальных исходников, обновите открытые
-   вкладки `office.reso.ru` и проверьте настройки каждого контекста.
+1. Stop the server, preserve accounts, configuration and keys, and update code and dependencies.
+2. Start it with the previous TLS mode and verify connectivity.
+3. Build and install the extension from current sources, reload open `office.reso.ru`
+   tabs, and check each context's settings.
 
-Сначала обновляется сервер: старые версии без `refresh` не поддерживают повторный
-вход по ревизии. Для следующего выпуска увеличьте версию в манифесте согласно
-[инструкции релиза](RELEASE.md).
+Update the server first: older versions without `refresh` do not support revision-based
+reauthentication. For the next release, increase the manifest version as described
+in the [release guide](RELEASE.md).
 
-При переходе с **1.0.4** сначала закройте все приватные окна, чтобы очистить прежнюю
-общую сессию. Старые плоские настройки мигрируют только в обычное хранилище;
-приватный аккаунт настраивается заново.
+When upgrading from **1.0.4**, close all private windows first to clear the old
+shared session. Legacy flat settings migrate only into the regular cookie store;
+configure the private account again.
 
-## Структура проекта
+## Project layout
 
 ```text
-cookieserver/manage.py          CLI сервера
-cookieserver/src/               Протокол, команды, WebSocket-сервер и хранилище
-cookieserver/tests/             Серверные интеграционные тесты и async-клиент
-extension/background.js        Менеджер cookie-store контекстов и браузерных событий
-extension/sync-context.js      Соединение, ревизии, очереди и повторный вход контекста
-extension/authentication.js    Наблюдение окна логина РЕСО Офис
-extension/logic.js             Вспомогательная логика без браузерных API
-extension/popup.js             Интерфейс настроек и статуса
-extension/tests/               Node-тесты расширения
-build_extension.py             Воспроизводимая упаковка для браузеров
-tests/test_build_extension.py  Проверки состава и воспроизводимости пакетов
+cookieserver/manage.py          Server CLI
+cookieserver/src/               Protocol, commands, WebSocket server and storage
+cookieserver/tests/             Server integration tests and async client
+extension/background.js        Cookie-store context and browser-event manager
+extension/sync-context.js       Per-context connection, revisions, queues and reauthentication
+extension/authentication.js     RESO Office login-dialog observation
+extension/logic.js              Browser-independent helpers
+extension/popup.js              Settings and status UI
+extension/tests/                Extension Node tests
+build_extension.py             Reproducible browser packaging
+tests/test_build_extension.py   Package contents and reproducibility checks
 ```
 
-## Лицензия
+## License
 
-Проект проприетарный; использование допускается с разрешения правообладателя.
-Условия — в [LICENSE](LICENSE). Включённая библиотека `webextension-polyfill`
-версии 0.12.0 распространяется под MPL-2.0; сведения о ней приведены в [RELEASE.md](RELEASE.md).
+This project is proprietary; use requires permission from the copyright holder.
+See [LICENSE](LICENSE). The included `webextension-polyfill` version 0.12.0 is
+distributed under MPL-2.0; details are in [RELEASE.md](RELEASE.md).

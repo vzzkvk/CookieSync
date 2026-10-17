@@ -1,0 +1,147 @@
+CookieSync — installation and setup
+==================================
+
+Languages: English — INSTALL.txt | Русский — INSTALL.ru.txt.
+
+What to get from your administrator
+----------------------------------
+1. Server address: the default is ws://mnas:52314.
+   Your administrator supplies the exact address and protocol.
+2. A shared account name for your group of browsers. The server creates the
+   account on the first connection and reuses it for subsequent connections.
+
+Chrome / Chromium / Edge (version 121 or later)
+---------------------------------------------
+Use CookieSync-<version>-chromium.zip.
+
+1. Extract the archive to a permanent folder, for example C:\CookieSyncExtension.
+   The folder must contain manifest.json.
+2. Open chrome://extensions in Chrome/Chromium or edge://extensions in Edge.
+3. Enable Developer mode.
+4. Click Load unpacked and select the folder containing manifest.json.
+5. Pin CookieSync to the browser toolbar using the extensions menu.
+
+Keep this folder in place after installation: the browser reads the extension
+files from it. Extract the ZIP rather than dragging it into the browser window.
+If installation is blocked by organization policies, contact your administrator.
+
+Firefox (version 121 or later)
+-----------------------------
+Use CookieSync-<version>-firefox.zip.
+
+This build is not signed by Mozilla. Standard Firefox supports temporary installation:
+1. Extract the archive into a separate folder.
+2. Open about:debugging#/runtime/this-firefox.
+3. Click Load Temporary Add-on and select manifest.json.
+4. If needed, grant the extension access to websites in about:addons.
+
+Temporary add-ons are removed when Firefox restarts. For permanent installation,
+the administrator must obtain a signed XPI through Mozilla Add-ons; distribution
+without a public listing is also possible. Renaming ZIP to XPI does not provide
+a Mozilla signature.
+
+Setup after installation
+------------------------
+The current extension interface uses Russian labels, shown in parentheses below.
+
+1. Click CookieSync in the desired window. Settings are selected automatically
+   from the active tab's context.
+2. In Account (Аккаунт), enter the name provided by your administrator.
+   New names allow 1–64 letters, digits, underscores or hyphens, up to 200 UTF-8 bytes.
+   Windows device names such as CON, NUL and COM1 are not allowed.
+   All clients in a group must use the same name and letter case.
+3. In Server (Сервер), enter the full address, including ws:// or wss:// and the port.
+   The name mnas must resolve to the server in your network/VPN.
+   Updates do not replace a previously saved address; change it manually if needed.
+4. In Cookie domains (Домены куки), keep .reso.ru unless instructed otherwise.
+5. Turn on Enable (Включить).
+6. Wait for the Online (Онлайн) status.
+
+Settings apply only to the active tab's context. To edit them, disable synchronization
+in that context, change the fields, then enable it again. You can close the popup.
+Regular settings are saved to disk; private settings remain in memory for the
+duration of the private session.
+
+Sending cookies requires an open office.reso.ru tab where you are signed in.
+Since version 1.0.2, registration in an empty server account reads and uploads
+existing cookies automatically; you do not have to wait for a cookie change.
+The authentication script can also be injected into tabs opened before installation.
+Grant the extension access to office.reso.ru.
+
+If the server already stores a cookie pair, that pair is applied on connection.
+Both ASP.NET_SessionId and ResoOffice60 are required for upload.
+Online confirms the connection. A Cookies not sent (Cookies не отправлены) detail
+means that sign-in was not confirmed, the cookie pair was incomplete, or an error
+occurred. Open/reload office.reso.ru and check your sign-in; if necessary, disable
+and re-enable synchronization.
+
+Connection troubleshooting
+--------------------------
+- Check network/VPN availability, the address and the account name.
+- ws:// is for a server without TLS; wss:// is for a TLS server.
+- Since version 1.0.1, the extension explicitly permits ws://: Firefox no longer
+  upgrades it to wss:// through its default Manifest V3 policy. If version 1.0
+  is installed, load a newer build and restart the extension.
+- For wss://, the browser must trust the server certificate and the hostname
+  must match it. Certificate issues must be resolved by the administrator.
+- Send the error text shown in the popup to your administrator.
+
+Updating Chrome / Edge
+----------------------
+Disable synchronization, replace the files in the same folder with the new build,
+and click Reload for CookieSync on the extensions page. Check your settings,
+enable synchronization, and reload the office.reso.ru tab.
+
+Updating a temporary Firefox installation
+----------------------------------------
+Extract the new Firefox build into the same folder. In
+about:debugging#/runtime/this-firefox, click Reload for CookieSync. If it is not
+installed, load manifest.json using Load Temporary Add-on.
+Check for version 1.2.2 or later in about:addons. Disable synchronization,
+set the required ws:// or wss:// address, then enable it again.
+
+Private / incognito windows (since version 1.1.0)
+-----------------------------------------------
+Chrome/Edge: open the extensions page → CookieSync → Details →
+Allow in Incognito / Allow in InPrivate.
+Firefox: about:addons → CookieSync → Run in Private Windows → Allow.
+
+Set account_A in a regular window and account_B in a private window, and enable
+synchronization separately in each context. Settings, connections and cookies
+are isolated. A private context starts disabled and does not inherit the regular
+account. Using the same account name on the same server intentionally joins
+the same synchronization group; use different names for independent sessions.
+
+Closing all private windows removes their settings from memory and closes the
+connection. Choose a private account again the next time you open a private window.
+If the background worker restarts while private windows remain open, storage.session
+preserves settings in RAM; private settings are not written to disk.
+The server-side account is not deleted.
+
+Several private windows in one browser profile usually share one private cookie
+store. Use separate profiles or Firefox containers for additional accounts.
+Each container is configured separately from its active tab.
+
+When upgrading from 1.0.4, close all private windows first to clear cookies copied
+from the old shared account. Then update the extension, configure the private
+account, and reload office.reso.ru in that window.
+
+Signing in again when server cookies no longer work (since version 1.2.0)
+-----------------------------------------------------------------------
+If the RESO Office login dialog is visible, sign in normally. The extension detects
+the dialog disappearing and sends the current complete cookie pair using refresh.
+The new pair can replace the old one without waiting five minutes if another
+client has not already advanced the server revision. A conflict adopts the newer
+server pair; an older attempt does not forcibly overwrite it.
+
+The administrator must update CookieServer first to support this feature.
+After installing the extension update, reload office.reso.ru tabs. If an unknown
+refresh command error is shown, report it to the administrator.
+
+In version 1.2.1, the synchronization toggle waits for confirmation that settings
+were saved. On failure, it shows the actual confirmed state: if disabling failed,
+the toggle returns to enabled and an error is displayed.
+
+Since version 1.2.2, disabling is available even with invalid saved settings.
+If the URL fails validation, disable synchronization, correct the address,
+and enable it again. Disabling changes only the enabled flag.

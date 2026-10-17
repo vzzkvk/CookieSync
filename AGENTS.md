@@ -21,6 +21,16 @@ Clients register under an account. When one client sends updated cookies, the se
 
 ---
 
+## Documentation languages
+
+English is the primary documentation language. Unsuffixed files such as
+`README.md`, `RELEASE.md` and `INSTALL.txt` contain English; Russian translations
+use `.ru.md` or `.ru.txt`. Update both language versions when changing commands,
+requirements, behavior or known limitations. Both extension build modes package
+`INSTALL.txt` (English) and `INSTALL.ru.txt` (Russian).
+
+---
+
 ## Core protocol
 
 Client request:

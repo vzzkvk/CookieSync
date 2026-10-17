@@ -22,7 +22,8 @@ PACKAGE_FILES = (
     'sync-context.js',
     'popup.html',
     'popup.js',
-    'INSTALL_RU.txt',
+    'INSTALL.txt',
+    'INSTALL.ru.txt',
 )
 
 
@@ -42,7 +43,7 @@ def write_archive(path: Path, contents: dict[str, bytes]) -> None:
 
 
 def build(release: bool = False, output: Path = OUTPUT) -> list[Path]:
-    """Build Chromium and Firefox ZIPs and write their SHA256SUMS file.
+    """Build Chromium and Firefox ZIPs with English/Russian guides and write SHA256SUMS.
 
     Args:
         release: Use distribution instructions and store-specific manifests;
@@ -72,7 +73,8 @@ def build(release: bool = False, output: Path = OUTPUT) -> list[Path]:
         raise ValueError('Expected 1-4 version numbers in 0..65535 without leading zeros')
     if release:
         output = output / 'release'
-        contents['INSTALL_RU.txt'] = (EXTENSION / 'INSTALL_RELEASE_RU.txt').read_bytes()
+        for suffix in ('', '.ru'):
+            contents[f'INSTALL{suffix}.txt'] = (EXTENSION / f'INSTALL_RELEASE{suffix}.txt').read_bytes()
     output.mkdir(parents=True, exist_ok=True)
     archives = []
 

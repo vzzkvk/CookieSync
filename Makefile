@@ -4,7 +4,7 @@ ARGS ?=
 
 .PHONY: run run_server test test-server test-extension build-extension release-extension
 
-run run_server:
+run_server:
 	$(PYTHON) -m cookieserver.manage runserver $(ARGS)
 
 test: test-server test-extension

@@ -1,0 +1,95 @@
+CookieSync 1.2.2 — release installation
+======================================
+
+In the ZIP: English — INSTALL.txt | Русский — INSTALL.ru.txt.
+Repository sources: INSTALL_RELEASE.txt / INSTALL_RELEASE.ru.txt.
+
+Chrome
+------
+For a normal installation, obtain the Chrome Web Store link from your administrator
+and click Add to Chrome. The ZIP is intended for the publisher to upload to the
+store; it is not an end-user installer. In a managed environment, your browser
+administrator can also configure deployment.
+
+Firefox 140 or later
+-------------------
+Obtain a Mozilla-signed .xpi file or the add-on's AMO page link.
+For a file, open about:addons → gear menu → Install Add-on From File.
+The firefox-unsigned.zip archive is not signed and cannot be used for permanent
+installation. Firefox displays a notice about authentication data being transmitted:
+these are the cookies synchronized with your selected server.
+
+Setup
+-----
+The current interface uses Russian labels: Account (Аккаунт), Server (Сервер),
+Cookie domains (Домены куки) and Enable (Включить).
+
+1. Open CookieSync from the toolbar in the desired window. The active tab
+   automatically determines which context's settings are shown.
+2. Enter the same account name on all clients in your group.
+3. The default address is ws://mnas:52314. Your computer must be able to reach
+   mnas over the local network/VPN. The administrator may supply a different
+   address, including a wss:// address.
+4. The default cookie domain is .reso.ru.
+5. Grant access to reso.ru and its subdomains, then enable synchronization.
+
+When enabled, the extension sends ASP.NET_SessionId and ResoOffice60 values,
+their attributes and the account name. The server stores the cookies and sends
+them to other clients using the same account name. Disabling stops synchronization.
+
+An office.reso.ru tab with a completed sign-in is required for upload.
+If the server account is empty, the extension uploads existing local cookies.
+If the server already has cookies, its pair is applied on connection.
+
+The content script matches *://*.reso.ru/* (reso.ru and its subdomains), but
+the sign-in check runs specifically on office.reso.ru. This build requests site
+access for configurable cookie domains and the server address.
+
+If the extension was already configured, the saved address takes precedence over
+the default. Disable synchronization and change the address manually.
+
+For connection problems, send the popup's error text to your administrator.
+ws:// corresponds to a server without TLS; wss:// requires a TLS server with
+a certificate trusted by the browser.
+
+Private / incognito windows
+--------------------------
+Allow the extension to run in Chrome/Edge incognito windows or Firefox private
+windows. Since version 1.1.0, each cookie store has its own settings, account and
+connection. Set account_A in a regular window and account_B in a private window.
+Enable each context separately. Firefox containers are also configured separately.
+Independent sessions require different account names.
+
+Private settings are not written to storage.local: they remain in RAM through
+storage.session until the last private tab closes. A new private session starts
+with an empty account and synchronization disabled. Private windows within one
+profile usually share one private context. The server continues to store the
+account and cookies independently of windows being closed.
+
+When upgrading from 1.0.4, close all private windows to clear the old shared
+session, then update the extension and configure the private account.
+The pre-upload sign-in check uses a tab in the same cookie store.
+
+Signing in again
+----------------
+Since version 1.2.0, the transition from a visible login dialog to a completed
+sign-in triggers a server cookie update, even if cookies changed before the dialog
+closed. This update bypasses the five-minute interval only when the expected
+revision matches; an older attempt cannot overwrite another client's newer pair.
+Update CookieServer to support refresh first, then update the extension and
+reload the open office.reso.ru tabs.
+
+Version 1.2.1
+-------------
+Fixes tab races and duplicate refresh requests. The synchronization toggle waits
+for confirmation from the background process. If saving settings fails, it shows
+the actual confirmed state together with the error. Update the server as well
+for revision-storage and data-handling fixes.
+
+Version 1.2.2
+-------------
+Fixes private-session closure during background restoration and refresh retry
+ownership after reconnect. An invalid saved URL can be corrected in the UI:
+disable synchronization, fix the address, then enable it again. Disabling does
+not require a valid connection address. Update the server as well for the fix
+that waits for file writes to finish despite repeated task cancellation.

@@ -14,6 +14,22 @@ import build_extension
 class ExtensionReleaseTests(unittest.TestCase):
     """Целостность ресурсов и браузерные различия неподписанных release-пакетов."""
 
+    def test_both_build_modes_include_matching_ru_and_en_guides(self):
+        """Оба браузера получают инструкции своего режима на двух языках."""
+        with tempfile.TemporaryDirectory() as directory:
+            for release in (False, True):
+                paths = build_extension.build(release=release, output=Path(directory))
+                for path in paths:
+                    with self.subTest(release=release, archive=path.name), ZipFile(path) as archive:
+                        for suffix in ('', '.ru'):
+                            source_name = f'INSTALL{"_RELEASE" if release else ""}{suffix}.txt'
+                            self.assertEqual(
+                                archive.read(f'INSTALL{suffix}.txt'),
+                                (build_extension.EXTENSION / source_name).read_bytes(),
+                            )
+                        self.assertIn('installation', archive.read('INSTALL.txt').decode('utf-8').splitlines()[0])
+                        self.assertIn('установка', archive.read('INSTALL.ru.txt').decode('utf-8').splitlines()[0])
+
     def test_release_packages_are_complete_reproducible_and_browser_specific(self):
         """Проверяет ссылки манифеста, PNG, стабильность ZIP и соответствие SHA256SUMS."""
         with tempfile.TemporaryDirectory() as directory:

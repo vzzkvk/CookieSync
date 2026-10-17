@@ -1,16 +1,18 @@
-# Запуск CookieSync на Windows
+# Running CookieSync on Windows
 
-Сервер запускается непосредственно на Windows через Python. Далее используются
-PowerShell и каталог `C:\CookieSync`. Если проект расположен в другом месте,
-замените этот путь в командах и настройках автозапуска.
+**English** | [Русский](WINDOWS.ru.md)
 
-## 1. Подготовка
+The server runs directly on Windows using Python. This guide uses PowerShell
+and the directory `C:\CookieSync`. If the project is elsewhere, substitute that
+path in the commands and startup configuration.
 
-1. Установите **Python 3.13 x64** с [python.org](https://www.python.org/downloads/windows/),
-   включая Python Launcher (`py`). В проекте указана версия Python 3.13.
-2. Скопируйте проект в `C:\CookieSync` или распакуйте туда архив репозитория.
-   Файл `manage.py` должен находиться в `C:\CookieSync\cookieserver\manage.py`.
-3. Откройте PowerShell и выполните:
+## 1. Preparation
+
+1. Install **Python 3.13 x64** from [python.org](https://www.python.org/downloads/windows/),
+   including Python Launcher (`py`). The project specifies Python 3.13.
+2. Copy the project or extract its repository archive into `C:\CookieSync`.
+   `manage.py` must be at `C:\CookieSync\cookieserver\manage.py`.
+3. Open PowerShell and run:
 
 ```powershell
 Set-Location C:\CookieSync
@@ -20,196 +22,194 @@ py -3.13 -m venv .venv
 New-Item -ItemType Directory -Force .\cookieserver\accounts, .\cookieserver\keys
 ```
 
-Если вы переносите проект с Linux, создайте `.venv` заново на Windows:
-виртуальное окружение с Linux не переносится. Активировать окружение не нужно —
-команды ниже используют его `python.exe` напрямую.
+When moving the project from Linux, recreate `.venv` on Windows: a Linux virtual
+environment cannot be transferred. Activation is unnecessary because the commands
+below invoke the virtual environment's `python.exe` directly.
 
-## 2. Конфигурация
+## 2. Configuration
 
-Сервер всегда читает **`cookieserver\server_config.conf`**. Имеющийся конфиг
-подходит и для Windows. Для новой установки можно взять подготовленный шаблон:
+The server always reads **`cookieserver\server_config.conf`**. The existing
+configuration also works on Windows. For a new installation, you can use the template:
 
 ```powershell
 Copy-Item .\cookieserver\server_config.windows.conf.example .\cookieserver\server_config.conf
 notepad .\cookieserver\server_config.conf
 ```
 
-Копирование заменяет существующий конфиг: если он уже настроен, сначала сохраните
-его копию или перенесите нужные значения вручную. Сохраняйте конфиг в UTF-8 без BOM.
+Copying replaces the existing configuration. If it is already configured, back it
+up first or transfer the required settings manually. Save as UTF-8 without a BOM.
 
-Основные параметры:
+Main settings:
 
-| Параметр | Значение / назначение |
-| --- | --- |
-| `host = 0.0.0.0` | Принимать подключения на всех IPv4-интерфейсах |
-| `port = 52314` | TCP-порт сервера |
-| `ping_interval = 30` | Интервал протокольной проверки соединения, секунды |
-| `ping_timeout = 10` | Время ожидания ответа на проверку, секунды |
-| `broadcast_timeout = 5` | Максимальное ожидание одного клиента при рассылке, секунды |
-| `cookie_update_interval = 300` | Минимальный интервал между разными парами cookies аккаунта, секунды |
-| `max_size = 16384` | Максимальный размер входящего сообщения, байты |
-| `log_level = INFO` | Уровень логирования |
+| Setting                        | Value / purpose                                                        |
+|--------------------------------|------------------------------------------------------------------------|
+| `host = 0.0.0.0`               | Accept connections on all IPv4 interfaces                              |
+| `port = 52314`                 | Server TCP port                                                        |
+| `ping_interval = 30`           | Protocol heartbeat interval, seconds                                   |
+| `ping_timeout = 10`            | Time to wait for the heartbeat reply, seconds                          |
+| `broadcast_timeout = 5`        | Maximum wait for one broadcast recipient, seconds                      |
+| `cookie_update_interval = 300` | Minimum interval between different cookie pairs in an account, seconds |
+| `max_size = 16384`             | Maximum incoming message size, bytes                                   |
+| `log_level = INFO`             | Logging level                                                          |
 
-TLS включается по умолчанию; выключение выполняется аргументом `--no-tls`,
-а не параметром конфига. Параметра командной строки `--config` нет.
-После изменения конфига перезапустите сервер.
+TLS is enabled by default. Disable it with `--no-tls`, not a configuration setting.
+There is no `--config` command-line option. Restart the server after changing the config.
 
-## 3. Аккаунты создаются автоматически
+## 3. Accounts are created automatically
 
-Укажите одинаковое имя аккаунта в расширениях одной группы, например `office_team`.
-При первом подключении расширение отправляет `register` с этим именем, и сервер
-создаёт аккаунт. Следующие клиенты используют тот же аккаунт и получают его cookies.
-Ручных команд создания и удаления аккаунтов нет. Посмотреть список можно так:
+Use the same account name in extensions belonging to one group, for example
+`office_team`. On the first connection, the extension sends `register` with that
+name and the server creates the account. Subsequent clients reuse the account and
+receive its cookies. There are no manual account creation or deletion commands.
+List accounts with:
 
 ```powershell
 .\.venv\Scripts\python.exe -m cookieserver.manage list_accounts
 ```
 
-Новые имена: 1–64 буквы, цифры, `_` или `-` (до 200 байт в UTF-8).
-Имена устройств Windows вроде `CON`, `NUL`, `COM1` запрещены.
-Передавайте имя с одинаковым регистром на всех клиентах.
+New names allow 1–64 letters, digits, underscores or hyphens, up to 200 UTF-8 bytes.
+Windows device names such as `CON`, `NUL` and `COM1` are forbidden.
+Use the same letter case on every client.
 
-Аккаунты и cookies хранятся в `cookieserver\accounts\*.json`. Сервер загружает
-их при запуске и сохраняет новые аккаунты при регистрации. Пользователю сервера
-нужно право записи в этот каталог (или в родительский каталог для его создания).
-Существующие аккаунты и их cookies продолжают использоваться после перезапуска.
-Запускайте один экземпляр сервера на один каталог аккаунтов.
+Accounts and cookies are stored in `cookieserver\accounts\*.json`. The server
+loads them on startup and saves new accounts during registration. The server user
+needs write access to that directory, or its parent if the directory must be created.
+Existing accounts and cookies survive a restart. Run one server instance per
+accounts directory.
 
-## 4. Первый запуск в локальной сети
+## 4. First run on a local network
 
-Для проверки в доверенной локальной сети можно запустить сервер без сертификата:
+For a test on a trusted local network, start without a certificate:
 
 ```powershell
 Set-Location C:\CookieSync
 .\.venv\Scripts\python.exe -m cookieserver.manage runserver --no-tls
 ```
 
-Окно должно оставаться открытым. Логи выводятся в консоль; остановка — `Ctrl+C`.
-`ws://` передаёт cookies без шифрования, поэтому для подключения через Интернет
-используйте TLS из следующего раздела.
+Keep the window open. Logs appear in the console; use `Ctrl+C` to stop the server.
+`ws://` sends cookies without encryption. For Internet connections, use TLS as
+described in the next section.
 
-Разрешите входящие соединения. Следующую команду выполните в отдельном PowerShell
-**от имени администратора** для частной локальной сети:
+Allow inbound connections. Run this command in a separate PowerShell window **as administrator**, for a private local
+network:
 
 ```powershell
 New-NetFirewallRule -DisplayName "CookieSync TCP 52314 LAN" -Direction Inbound -Action Allow -Protocol TCP -LocalPort 52314 -Profile Private -RemoteAddress LocalSubnet
 ```
 
-Правило действует только для сетевого профиля «Частная сеть» и клиентов локальной
-подсети. Для VPN или другой подсети укажите её адресный диапазон и подходящий
-сетевой профиль. При изменении порта измените и правило.
+This rule applies only to the Private network profile and local-subnet clients.
+For a VPN or another subnet, specify its address range and the appropriate network
+profile. If you change the port, update the rule too.
 
-Узнайте IPv4-адрес сервера командой `ipconfig`. В расширении укажите:
+Find the server's IPv4 address using `ipconfig`. Configure the extension:
 
-- **Server URL:** `ws://192.168.1.10:52314` — замените IP на адрес Windows-сервера;
-- **Account:** `office_team` — общее имя аккаунта для этой группы клиентов;
-- включите синхронизацию.
+- **Server URL:** `ws://192.168.1.10:52314` — replace the IP with the Windows server's address;
+- **Account:** `office_team` — the shared name for this group of clients;
+- enable synchronization.
 
-На самом сервере можно использовать `ws://127.0.0.1:52314`. Адрес `0.0.0.0`
-используется для прослушивания, а не как адрес подключения клиента.
+On the server itself, you can use `ws://127.0.0.1:52314`. `0.0.0.0` is a bind
+address, not the address clients should connect to.
 
-С клиентского Windows-компьютера проверьте доступность порта:
+From a Windows client, check port reachability:
 
 ```powershell
 Test-NetConnection 192.168.1.10 -Port 52314
 ```
 
-`TcpTestSucceeded : True` подтверждает TCP-доступность, но не проверяет TLS,
-аккаунт или протокол WebSocket. Обычная веб-страница на этом порту не обслуживается.
+`TcpTestSucceeded : True` confirms TCP reachability, but does not validate TLS,
+the account or the WebSocket protocol. The port does not serve a regular web page.
 
-## 5. Запуск с TLS (`wss://`)
+## 5. Running with TLS (`wss://`)
 
-Для постоянного размещения подготовьте DNS-имя, например `sync.example.com`,
-указывающее на сервер, и доверенный сертификат для этого имени.
-Для Windows сертификат можно получить ACME-клиентом, например win-acme,
-с сохранением сертификата и приватного ключа в **PEM**. Способ проверки домена
-выберите в ACME-клиенте согласно вашей сети (HTTP-01 или DNS-01).
+For a permanent deployment, prepare a DNS name such as `sync.example.com` pointing
+to the server and a trusted certificate for that name. On Windows, an ACME client
+such as win-acme can obtain the certificate and save it and its private key as **PEM**. Configure the domain validation
+method (HTTP-01 or DNS-01) to suit your network.
 
-Скопируйте полную цепочку сертификатов и соответствующий приватный ключ в:
+Copy the full certificate chain and its matching private key to:
 
 ```text
 C:\CookieSync\cookieserver\keys\fullchain.pem
 C:\CookieSync\cookieserver\keys\privkey.pem
 ```
 
-Укажите в секции `[server]` файла `cookieserver\server_config.conf`:
+In the `[server]` section of `cookieserver\server_config.conf`, set:
 
 ```ini
 cert = C:/CookieSync/cookieserver/keys/fullchain.pem
 key = C:/CookieSync/cookieserver/keys/privkey.pem
 ```
 
-Используйте абсолютные пути без кавычек. Относительные пути сертификатов
-разрешаются относительно рабочего каталога процесса. Файл `.pfx` напрямую
-не подходит; текущий запуск также не предусматривает ввод пароля ключа,
-поэтому нужен PEM-ключ без парольной защиты с доступом только нужным пользователям.
+Use absolute paths without quotes. Relative certificate paths are resolved against
+the process working directory. A `.pfx` file cannot be used directly. Startup does
+not prompt for a key password, so use an unencrypted PEM key with access restricted
+to the required users.
 
-Остановите тестовый сервер и запустите без `--no-tls`:
+Stop the test server and start without `--no-tls`:
 
 ```powershell
 .\.venv\Scripts\python.exe -m cookieserver.manage runserver
 ```
 
-В расширении используйте **`wss://sync.example.com:52314`**. Имя в URL должно
-совпадать с именем в сертификате. Для самоподписанного сертификата потребуется
-настроить доверие на каждом клиенте, включая используемый браузер; одного наличия
-файлов на сервере недостаточно. Сервер сам сертификаты не создаёт.
+Use **`wss://sync.example.com:52314`** in the extension. The URL hostname must match
+the certificate. For a self-signed certificate, configure trust on each client,
+including its browser; merely having certificate files on the server is insufficient.
+The server does not generate certificates itself.
 
-При подключении извне настройте доступ к TCP-порту `52314` в Windows Firewall
-для адресов клиентов/VPN и проброс порта на маршрутизаторе, если сервер за NAT.
-При наличии облачного firewall разрешите порт и там. Настройте автоматическое
-продление сертификата в ACME-клиенте и перезапуск CookieSync после продления:
-работающий сервер не перечитывает сертификат автоматически.
+For external connections, allow TCP port `52314` in Windows Firewall for the clients
+or VPN and configure router port forwarding if the server is behind NAT. Also update
+any cloud firewall. Configure automatic certificate renewal in the ACME client and
+restart CookieSync after renewal: the running server does not reload certificates.
 
-У текущего сервера нет отдельного пароля/токена клиента: доступ к аккаунту
-определяется его именем. Для удалённого размещения ограничьте сетевой доступ
-клиентами или VPN; TLS шифрует соединение, но не добавляет авторизацию клиентов.
+The current server has no separate client password or token; the account name
+selects the account. For remote deployment, restrict network access to clients or
+a VPN. TLS encrypts the connection but does not add client authentication.
 
-## 6. Автозапуск через Планировщик заданий Windows
+## 6. Automatic startup with Windows Task Scheduler
 
-После успешной ручной проверки откройте `taskschd.msc` и выберите **«Создать задачу»**:
+After a successful manual test, open `taskschd.msc` and choose **Create Task**:
 
-1. **Общие:** имя `CookieSync`; выберите пользователя, у которого есть доступ
-   к проекту, сертификатам и право записи в `cookieserver\accounts`.
-   Включите «Выполнять вне зависимости от регистрации пользователя».
-   Если потребуется, укажите пароль учётной записи Windows.
-2. **Триггеры:** «При запуске» компьютера.
-3. **Действия → Запуск программы:**
-   - программа: `C:\CookieSync\.venv\Scripts\python.exe`;
-   - аргументы для TLS: `-u -m cookieserver.manage runserver`;
-   - для проверенного варианта без TLS: `-u -m cookieserver.manage runserver --no-tls`;
-   - рабочая папка («Начать в»): `C:\CookieSync`.
-4. **Условия:** при необходимости отключите ограничение запуска только при
-   питании от электросети; компьютер не должен уходить в сон во время работы сервера.
-5. **Параметры:** отключите ограничение длительности выполнения задачи;
-   включите перезапуск при сбое (например, через 1 минуту, до 999 попыток);
-   при уже выполняющейся задаче выберите **«Не запускать новый экземпляр»**.
+1. **General:** name it `CookieSync`; select a user with access to the project,
+   certificates and write permission for `cookieserver\accounts`.
+   Select Run whether user is logged on or not. Supply the Windows account
+   password if prompted.
+2. **Triggers:** At startup.
+3. **Actions → Start a program:**
+    - program: `C:\CookieSync\.venv\Scripts\python.exe`;
+    - TLS arguments: `-u -m cookieserver.manage runserver`;
+    - for the tested non-TLS setup: `-u -m cookieserver.manage runserver --no-tls`;
+    - working directory (Start in): `C:\CookieSync`.
+4. **Conditions:** if appropriate, disable the restriction to AC power.
+   The computer must not sleep while serving clients.
+5. **Settings:** disable the maximum task duration; enable restart on failure (for example, after 1 minute, up to 999
+   attempts). If the task is already
+   running, select Do not start a new instance.
 
-Остановите ручной экземпляр, запустите задачу и проверьте подключение расширения.
-Статус «Выполняется» (`0x41301`) нормален: сервер — постоянно работающий процесс.
-Планировщик не сохраняет консольные логи Python автоматически; для диагностики
-остановите задачу и запустите ту же команду вручную в PowerShell.
+Stop the manual instance, start the scheduled task, and test extension connectivity.
+Running (`0x41301`) is a normal status: the server is a long-running process.
+Task Scheduler does not save Python console logs automatically. For diagnostics,
+stop the task and run the same command manually in PowerShell.
 
-## 7. Обслуживание и частые ошибки
+## 7. Maintenance and common errors
 
-- **`No module named cookieserver`:** запускайте команду из `C:\CookieSync`,
-  используя `-m cookieserver.manage`, а не прямой путь к `manage.py`.
-- **`No module named websockets`:** установите `cookieserver\requirements.txt`
-  через тот же `.venv\Scripts\python.exe`, которым запускаете сервер.
-- **`FileNotFoundError` при TLS-запуске:** проверьте пути к PEM-файлам;
-  для локального теста явно используйте `--no-tls`.
-- **`WinError 10048`:** порт занят, возможно, уже работает задача CookieSync.
-- **Нет подключения:** проверьте IP/DNS, firewall, доступность порта и соответствие
-  `ws://` запуску с `--no-tls`, а `wss://` — запуску с TLS.
-- **Ошибка регистрации аккаунта:** проверьте допустимость имени, права записи
-  сервера в `cookieserver\accounts` и серверные логи. Если сервер всё ещё отвечает
-  «аккаунт не найден» на `register`, обновите сервер до версии с автосозданием.
-- **Клиент не отправляет cookies:** для отправки нужно открыть `office.reso.ru`
-  и войти в систему; расширение проверяет авторизацию через открытую вкладку.
-- **Новая пара cookies не принимается сразу:** `cookie_update_interval = 300`
-  задаёт пятиминутный интервал между разными парами одного аккаунта.
+- **`No module named cookieserver`:** run from `C:\CookieSync` using
+  `-m cookieserver.manage`, not the direct path to `manage.py`.
+- **`No module named websockets`:** install `cookieserver\requirements.txt`
+  using the same `.venv\Scripts\python.exe` that runs the server.
+- **`FileNotFoundError` with TLS:** check the PEM file paths. For a local test,
+  explicitly use `--no-tls`.
+- **`WinError 10048`:** the port is occupied; the scheduled task may already be running.
+- **Cannot connect:** check IP/DNS, firewall, port availability, and match
+  `ws://` with `--no-tls` or `wss://` with TLS.
+- **Account registration error:** check the name, write permissions for
+  `cookieserver\accounts`, and server logs. If `register` still returns an
+  account-not-found error, update the server to support automatic account creation.
+- **Client does not upload cookies:** open `office.reso.ru` and sign in;
+  the extension checks authentication through an open tab.
+- **A new pair is not accepted immediately:** `cookie_update_interval = 300`
+  sets a five-minute interval between different pairs in an account.
 
-Для резервного копирования остановите сервер и сохраните `cookieserver\accounts`,
-рабочий конфиг и TLS-ключи в защищённом месте. Перед обновлением остановите задачу,
-обновите код и зависимости, затем запустите её снова. При переносе на другой
-компьютер создайте новое виртуальное окружение и проверьте пути сертификатов.
+For backups, stop the server and copy `cookieserver\accounts`, the active config
+and TLS keys to a protected location. Stop the scheduled task before updates,
+update code and dependencies, then start it again. When moving to another computer,
+create a new virtual environment and check the certificate paths.
