@@ -22,9 +22,10 @@ async function popup(incognito, enabled = false) {
     const messages = [];
     const state = { activeTabId: incognito ? 9 : 7, fail: false,
         settings: { account: incognito ? 'account_B' : 'account_A',
-            serverUrl: 'ws://mnas:52314', cookieDomains: ['.reso.ru'], enabled } };
+            serverUrl: 'ws://localhost:52314', cookieDomains: ['.reso.ru'], enabled } };
     /** Возвращает стабильную DOM-заглушку с классами и вручную вызываемыми событиями. */
     function element(id) {
+        assert.ok(!['cookieDomainInput', 'domainError'].includes(id), 'Domain controls have been removed');
         if (!elements.has(id)) {
             const classes = new Set();
             const listeners = new Map();
@@ -100,7 +101,7 @@ test('popup ignores another context status and never falls back after its contex
 test('regular popup shows its account and rejects non-WebSocket URLs', async () => {
     const app = await popup(false);
     assert.equal(app.element('accountInput').value, 'account_A');
-    app.element('serverUrlInput').value = 'https://mnas:52314';
+    app.element('serverUrlInput').value = 'https://localhost:52314';
     app.element('serverUrlInput').emit('input');
     assert.equal(app.element('enableToggle').disabled, true);
     assert.match(app.element('serverError').textContent, /ws:\/\//);
@@ -189,7 +190,7 @@ test('status updates received during a toggle are refreshed after its acknowledg
 
 test('an invalid enabled URL does not lock out disabling and repairing the configuration', async () => {
     const app = await popup(false, true);
-    app.state.settings.serverUrl = 'https://mnas:52314';
+    app.state.settings.serverUrl = 'https://localhost:52314';
     await vm.runInContext('loadSettings()', app.context);
     assert.equal(app.element('enableToggle').checked, true);
     assert.equal(app.element('enableToggle').disabled, false);
@@ -199,16 +200,16 @@ test('an invalid enabled URL does not lock out disabling and repairing the confi
     assert.equal(app.requests.at(-1).type, 'disableContext');
     assert.equal('settings' in app.requests.at(-1), false);
     assert.equal(app.state.settings.enabled, false);
-    assert.equal(app.state.settings.serverUrl, 'https://mnas:52314');
+    assert.equal(app.state.settings.serverUrl, 'https://localhost:52314');
     assert.equal(app.element('serverUrlInput').disabled, false);
     assert.equal(app.element('enableToggle').disabled, true);
-    app.element('serverUrlInput').value = 'ws://mnas:52314';
+    app.element('serverUrlInput').value = 'ws://localhost:52314';
     app.element('serverUrlInput').emit('input');
     assert.equal(app.element('enableToggle').disabled, false);
     app.element('enableToggle').checked = true;
     await app.element('enableToggle').emit('change');
     assert.equal(app.state.settings.enabled, true);
-    assert.equal(app.state.settings.serverUrl, 'ws://mnas:52314');
+    assert.equal(app.state.settings.serverUrl, 'ws://localhost:52314');
 });
 
 test('an enabled configuration with a missing account can still be disabled', async () => {
@@ -220,4 +221,17 @@ test('an enabled configuration with a missing account can still be disabled', as
     await app.element('enableToggle').emit('change');
     assert.equal(app.state.settings.enabled, false);
     assert.equal(app.element('accountInput').disabled, false);
+});
+
+test('popup uses localhost as its placeholder and saves no editable domain settings', async () => {
+    const html = readFileSync(join(__dirname, '../popup.html'), 'utf8');
+    assert.match(html, /placeholder="ws:\/\/localhost:52314"/);
+    assert.doesNotMatch(html, /cookieDomainInput|domainError/);
+    const app = await popup(false);
+    app.element('accountInput').value = 'changed';
+    await app.element('accountInput').emit('blur');
+    const request = app.requests.at(-1);
+    assert.equal(request.type, 'saveSettings');
+    assert.equal('cookieDomains' in request.settings, false);
+    assert.equal('cookieDomain' in request.settings, false);
 });

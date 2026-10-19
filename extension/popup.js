@@ -5,12 +5,10 @@
  */
 const accountInput = document.getElementById('accountInput');
 const serverUrlInput = document.getElementById('serverUrlInput');
-const cookieDomainInput = document.getElementById('cookieDomainInput');
 const enableToggle = document.getElementById('enableToggle');
 const toggleContainer = document.getElementById('toggleContainer');
 const accountError = document.getElementById('accountError');
 const serverError = document.getElementById('serverError');
-const domainError = document.getElementById('domainError');
 const syncStatus = document.getElementById('syncStatus');
 let boundContext = null;
 let boundTabId = null;
@@ -21,7 +19,7 @@ let actionVersion = 0;
 let statusRequest = 0;
 let statusDirty = false;
 
-const SETTINGS_FIELDS = [accountInput, serverUrlInput, cookieDomainInput];
+const SETTINGS_FIELDS = [accountInput, serverUrlInput];
 
 /** Разрешает или запрещает редактирование полей соединения и аккаунта. */
 function setFieldsDisabled(disabled) {
@@ -35,7 +33,6 @@ function validateInputs() {
     let isValid = boundContext !== null;
     accountError.textContent = '';
     serverError.textContent = '';
-    domainError.textContent = '';
 
     if (!accountInput.value.trim()) {
         accountInput.classList.add('error');
@@ -56,23 +53,6 @@ function validateInputs() {
         } catch (error) {
             serverUrlInput.classList.add('error');
             serverError.textContent = error.message;
-            isValid = false;
-        }
-    }
-
-    if (!cookieDomainInput.value.trim()) {
-        cookieDomainInput.classList.add('error');
-        domainError.textContent = 'Обязательное поле';
-        isValid = false;
-    } else {
-        cookieDomainInput.classList.remove('error');
-        const domains = cookieDomainInput.value
-            .split(',')
-            .map(s => s.trim())
-            .filter(Boolean);
-        if (!domains.length || domains.some(d => !/^\.?[a-zа-я0-9.-]+$/i.test(d))) {
-            cookieDomainInput.classList.add('error');
-            domainError.textContent = 'Формат: домен, через запятую (напр. .reso.ru)';
             isValid = false;
         }
     }
@@ -183,7 +163,6 @@ async function loadSettings() {
         const settings = status.settings;
         accountInput.value = settings.account;
         serverUrlInput.value = settings.serverUrl;
-        cookieDomainInput.value = settings.cookieDomains.join(', ');
         confirmStatus(status);
     } catch (error) {
         showError(error);
@@ -217,10 +196,9 @@ function saveSettings(enabled = confirmedEnabled, isToggle = false) {
         tabId: boundTabId, contextId: boundContext.contextId,
     };
     if (!disabling) {
-        const domains = cookieDomainInput.value.split(',').map(value => value.trim()).filter(Boolean);
         request.settings = {
             account: accountInput.value.trim(), serverUrl: serverUrlInput.value.trim(),
-            cookieDomains: domains.length ? domains : ['.reso.ru'], enabled,
+            enabled,
         };
     }
     actionVersion += 1;
@@ -261,11 +239,9 @@ function saveSettings(enabled = confirmedEnabled, isToggle = false) {
 // Event listeners
 accountInput.addEventListener('input', updateToggleState);
 serverUrlInput.addEventListener('input', updateToggleState);
-cookieDomainInput.addEventListener('input', updateToggleState);
 
 accountInput.addEventListener('blur', () => saveSettings());
 serverUrlInput.addEventListener('blur', () => saveSettings());
-cookieDomainInput.addEventListener('blur', () => saveSettings());
 
 enableToggle.addEventListener('change', function () {
     const requestedEnabled = this.checked;

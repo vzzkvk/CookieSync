@@ -44,11 +44,14 @@ The server write helper now withstands repeated task cancellation; update
 
 ## Current address and permissions
 
-Default address: **`ws://mnas:52314`**. Plain `ws://` support is retained for the
-internal network; `wss://` is also supported. Updates preserve user-saved settings.
+Default address: **`ws://localhost:52314`**. Plain `ws://` support is retained for the
+internal network; `wss://` is also supported. Updates preserve user-saved server URLs.
+`localhost` is the computer running the browser; enter the server's IP/DNS name
+when it runs on another machine.
 
-The current manifest uses `host_permissions: ["*://*/*"]` for configurable cookie
-domains and server addresses. The content-script match pattern is `*://*.reso.ru/*`;
+The current manifest uses `host_permissions: ["*://*/*"]` to allow configurable
+server addresses and connection diagnostics. Cookie synchronization is restricted
+to `reso.ru` and its subdomains. The content-script match pattern is `*://*.reso.ru/*`;
 `*://.reso.ru` is not a valid pattern. Authentication is checked only on
 `office.reso.ru`. The background handler no longer logs WebSocket cookie payloads
 to the console.
@@ -107,7 +110,7 @@ Actual client behavior:
 - Sends `ASP.NET_SessionId` and `ResoOffice60`, their attributes, and the account
   name to the user-selected server. Other clients of the same account receive
   these cookies from the server.
-- Regular/container settings (account name, server URL, cookie domains and enabled
+- Regular/container settings (account name, server URL and enabled
   flag) are stored per cookie store in `storage.local.contextSettings`. Private
   settings remain in RAM through `storage.session` and are removed after the last
   private window closes. Contexts do not inherit each other's accounts and use
@@ -116,8 +119,8 @@ Actual client behavior:
   `office.reso.ru` and returns a boolean result.
 - `cookies` reads/applies the pair; `storage` saves settings; `alarms` restores
   connections; `scripting` checks authentication in tabs opened before installation.
-  Access to `reso.ru` is needed for cookies and the script; access to `mnas`
-  is used for connection diagnostics.
+  Access to `reso.ru` is needed for cookies and the script; access to the configured
+  server host is used for connection diagnostics.
 - There is no built-in analytics or advertising traffic. The server stores cookies
   in JSON files; accounts currently have no automatic deletion period.
 

@@ -5,7 +5,7 @@ Languages: English — INSTALL.txt | Русский — INSTALL.ru.txt.
 
 What to get from your administrator
 ----------------------------------
-1. Server address: the default is ws://mnas:52314.
+1. Server address: the default is ws://localhost:52314.
    Your administrator supplies the exact address and protocol.
 2. A shared account name for your group of browsers. The server creates the
    account on the first connection and reuses it for subsequent connections.
@@ -51,11 +51,14 @@ The current extension interface uses Russian labels, shown in parentheses below.
    Windows device names such as CON, NUL and COM1 are not allowed.
    All clients in a group must use the same name and letter case.
 3. In Server (Сервер), enter the full address, including ws:// or wss:// and the port.
-   The name mnas must resolve to the server in your network/VPN.
+   localhost refers to this browser's computer. If the server runs elsewhere,
+   use that machine's IP address or DNS name.
    Updates do not replace a previously saved address; change it manually if needed.
-4. In Cookie domains (Домены куки), keep .reso.ru unless instructed otherwise.
-5. Turn on Enable (Включить).
-6. Wait for the Online (Онлайн) status.
+4. Turn on Enable (Включить).
+5. Wait for the Online (Онлайн) status.
+
+Only RESO Office is currently supported: cookies are restricted to reso.ru and
+its subdomains. There is no domain input; previously saved custom domains are ignored.
 
 Settings apply only to the active tab's context. To edit them, disable synchronization
 in that context, change the fields, then enable it again. You can close the popup.

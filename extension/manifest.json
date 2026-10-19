@@ -3,7 +3,7 @@
   "name": "CookieSync Extension",
   "version": "1.2.2",
   "incognito": "spanning",
-  "description": "Синхронизация куки между браузерами через WebSocket сервер",
+  "description": "Синхронизация cookies РЕСО Офис между браузерами через WebSocket",
   "minimum_chrome_version": "121",
   "permissions": ["storage", "cookies", "alarms", "scripting"],
   "host_permissions": ["*://*/*"],

@@ -56,7 +56,8 @@ python3 -m venv .venv
 
 With the current configuration, the server listens on `0.0.0.0:52314`. Set
 `ws://<server-address>:52314` in the extension; on the same machine you can use
-`ws://127.0.0.1:52314`. The default hostname `mnas` must resolve in your network/VPN.
+`ws://localhost:52314`. `localhost` refers to the computer running the browser;
+for a server on another machine, enter its IP address or DNS name.
 
 For Windows, follow the [dedicated guide](cookieserver/WINDOWS.md).
 Both platforms use the same `cookieserver/server_config.conf`.
@@ -137,16 +138,16 @@ extension; see [RELEASE.md](RELEASE.md).
 After installation:
 
 1. Open the desired tab and the CookieSync toolbar popup.
-2. Set your group's account and server address. The default is `ws://mnas:52314`.
-3. Keep the domain `.reso.ru` unless your administrator supplies another list.
-4. Grant site access, open `office.reso.ru`, and sign in.
-5. Enable synchronization and check the status. You can close the popup: background
+2. Set your group's account and server address. The default is `ws://localhost:52314`.
+3. Grant access to RESO sites, open `office.reso.ru`, and sign in.
+4. Enable synchronization and check the status. You can close the popup: background
    code manages the connection and cookies.
 
 The current UI labels are Russian: Account is `Аккаунт`, Server is `Сервер`,
-Cookie domains is `Домены куки`, and Enable is `Включить`.
+and Enable is `Включить`. The extension currently supports RESO Office only;
+cookie domains are fixed to `reso.ru` and its subdomains, with no domain input.
 
-Saved settings take precedence over defaults. Disable synchronization in the selected
+Saved account and connection settings take precedence over defaults. Disable synchronization in the selected
 context before editing its fields. Disabling remains available with an invalid URL
 or empty account; the toggle reflects the state confirmed by the background process.
 
@@ -187,7 +188,7 @@ additional independent contexts.
 
 ### Cookie pair and authentication check
 
-Only **`ASP.NET_SessionId`** and **`ResoOffice60`** in the configured domains are
+Only **`ASP.NET_SessionId`** and **`ResoOffice60`** for `reso.ru` and its subdomains are
 synchronized. A complete, unambiguous pair is required. Domains match exactly
 or at a subdomain boundary: `sub.reso.ru` matches `reso.ru`, but `evilreso.ru` does not.
 Values and cookie attributes are transferred, including `path`, `secure`, `httpOnly`,
@@ -197,8 +198,8 @@ included in the server payload.
 Before uploading, the client checks authentication in tabs of **the same cookie store**.
 The document must no longer be `loading`, and the login dialog
 `#clbkAuth_ASPxPopupControl1_loginTitle2` on `office.reso.ru` must be absent or hidden.
-This is a DOM heuristic, not a RESO API session check. Configuring another cookie
-domain does not change the authentication site. There is a known race when a tab
+This is a DOM heuristic, not a RESO API session check. Legacy `cookieDomain` /
+`cookieDomains` settings cannot override the fixed RESO domain. There is a known race when a tab
 closes; see [Known limitations](#known-limitations).
 
 ### Registration and ordinary updates

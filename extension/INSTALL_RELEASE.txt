@@ -21,16 +21,16 @@ these are the cookies synchronized with your selected server.
 
 Setup
 -----
-The current interface uses Russian labels: Account (Аккаунт), Server (Сервер),
-Cookie domains (Домены куки) and Enable (Включить).
+The current interface uses Russian labels: Account (Аккаунт), Server (Сервер)
+and Enable (Включить).
 
 1. Open CookieSync from the toolbar in the desired window. The active tab
    automatically determines which context's settings are shown.
 2. Enter the same account name on all clients in your group.
-3. The default address is ws://mnas:52314. Your computer must be able to reach
-   mnas over the local network/VPN. The administrator may supply a different
-   address, including a wss:// address.
-4. The default cookie domain is .reso.ru.
+3. The default address is ws://localhost:52314. localhost is the computer running
+   the browser. For a remote server, use its IP address or DNS name. The administrator
+   may supply a different address, including a wss:// address.
+4. Only reso.ru and its subdomains are synchronized; the domain is fixed.
 5. Grant access to reso.ru and its subdomains, then enable synchronization.
 
 When enabled, the extension sends ASP.NET_SessionId and ResoOffice60 values,
@@ -43,7 +43,8 @@ If the server already has cookies, its pair is applied on connection.
 
 The content script matches *://*.reso.ru/* (reso.ru and its subdomains), but
 the sign-in check runs specifically on office.reso.ru. This build requests site
-access for configurable cookie domains and the server address.
+access for RESO cookies and the configurable server address. The domain input
+has been removed; legacy custom domain settings are ignored.
 
 If the extension was already configured, the saved address takes precedence over
 the default. Disable synchronization and change the address manually.

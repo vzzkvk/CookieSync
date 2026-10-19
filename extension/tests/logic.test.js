@@ -6,6 +6,8 @@ const { test } = require('node:test');
 const assert = require('node:assert/strict');
 
 const {
+    normalizeSyncSettings,
+    validateSyncSettings,
     isOfficeUrl,
     normalizeDomain,
     parseDomains,
@@ -22,6 +24,20 @@ const {
     remarkExpectedRemoteChange,
     isExpectedRemoteChange,
 } = require('../logic.js');
+
+test('settings default to localhost and restrict both new and legacy domains to RESO', () => {
+    assert.equal(normalizeSyncSettings().serverUrl, 'ws://localhost:52314');
+    for (const settings of [{}, { cookieDomains: ['example.com'] }, { cookieDomain: 'example.com' }]) {
+        assert.deepEqual(normalizeSyncSettings(settings).cookieDomains, ['.reso.ru']);
+    }
+    const saved = { account: ' team ', serverUrl: ' wss://sync.example.com:52314 ',
+        enabled: true, cookieDomains: ['example.com'] };
+    const normalized = validateSyncSettings(saved);
+    assert.equal(normalized.serverUrl, 'wss://sync.example.com:52314');
+    assert.equal(normalized.account, 'team');
+    assert.deepEqual(normalized.cookieDomains, ['.reso.ru']);
+    assert.deepEqual(saved.cookieDomains, ['example.com'], 'normalization must not mutate saved input');
+});
 
 test('office URLs require the exact host and HTTP(S)', () => {
     for (const url of ['https://office.reso.ru/', 'http://office.reso.ru/login', 'https://OFFICE.RESO.RU/']) {

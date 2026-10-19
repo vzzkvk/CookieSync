@@ -8,7 +8,7 @@
  * @typedef {Object} SyncSettings
  * @property {string} account Имя серверного аккаунта.
  * @property {string} serverUrl Адрес WebSocket-сервера.
- * @property {string[]} cookieDomains Разрешённые домены cookies.
+ * @property {string[]} cookieDomains Фиксированный список ['.reso.ru'] для внутренних операций.
  * @property {boolean} enabled Запрошенное состояние синхронизации.
  */
 
@@ -63,16 +63,15 @@ function isOfficeUrl(value) {
 
 /**
  * Удаляет пробелы по краям ввода и дополняет настройки значениями по умолчанию.
- * @param {Object} [settings={}] Текущие или старые настройки с cookieDomain.
+ * @param {Object} [settings={}] Настройки подключения; старые cookieDomain/cookieDomains игнорируются.
  * @returns {SyncSettings} Новый объект; валидность URL и аккаунта не проверяется.
  */
 function normalizeSyncSettings(settings = {}) {
-    const domains = parseDomains(settings.cookieDomains ?? settings.cookieDomain);
     return {
         account: typeof settings.account === 'string' ? settings.account.trim() : '',
         serverUrl: typeof settings.serverUrl === 'string' && settings.serverUrl.trim()
-            ? settings.serverUrl.trim() : 'ws://mnas:52314',
-        cookieDomains: domains.length ? domains : ['.reso.ru'],
+            ? settings.serverUrl.trim() : 'ws://localhost:52314',
+        cookieDomains: ['.reso.ru'],
         enabled: settings.enabled === true,
     };
 }

@@ -17,7 +17,7 @@ const pair = [
 ];
 const pairB = pair.map(cookie => ({ ...cookie, value: `${cookie.value}-B` }));
 /** Создаёт включённые настройки для заданного тестового аккаунта. */
-const config = account => ({ account, serverUrl: 'ws://mnas:52314', enabled: true, cookieDomains: ['.reso.ru'] });
+const config = account => ({ account, serverUrl: 'ws://localhost:52314', enabled: true, cookieDomains: ['.reso.ru'] });
 const normalTab = { id: 7, url: 'https://office.reso.ru/', incognito: false };
 const privateTab = { id: 9, url: 'https://office.reso.ru/', incognito: true };
 
@@ -491,6 +491,42 @@ test('a login observation received during a local read is processed before sendi
     await app.authState(7, false); await app.fireTimer(1500);
     assert.equal(app.sent.at(-1).command, 'refresh');
     assert.equal(app.sent.at(-1).expected_revision, 1);
+});
+
+for (const legacy of [false, true]) {
+    test(`stored custom domains cannot expand synchronization beyond RESO (legacy=${legacy})`, async () => {
+        const settings = { account: 'reso_account', serverUrl: 'ws://sync.example:52314', enabled: true };
+        const local = legacy ? { ...settings, cookieDomain: 'example.com' }
+            : { contextSettingsVersion: 1, contextSettings: { '0': { ...settings, cookieDomains: ['example.com'] } } };
+        const foreign = pairB.map(cookie => ({ ...cookie, domain: '.example.com' }));
+        const app = await background({ local, cookies: [...pair, ...foreign] });
+        assert.deepEqual([...app.context().settings.cookieDomains], ['.reso.ru']);
+        assert.equal(app.context().settings.serverUrl, settings.serverUrl);
+        const socket = await app.register();
+        await app.fireTimer(1500);
+        assert.deepEqual(app.sent.at(-1).payload, pair);
+        assert.ok(app.reads.every(details => details.domain === 'reso.ru' && details.storeId === '0'));
+        await app.save({ cookieDomains: ['example.com'] });
+        assert.equal(app.context().socket, socket);
+        assert.deepEqual(app.state.local.contextSettings['0'].cookieDomains, ['.reso.ru']);
+        const before = app.written.length;
+        await socket.message({ command: 'set', payload: foreign, revision: 10 }); await app.settle();
+        assert.equal(app.written.length, before);
+    });
+}
+
+test('recovery from previously customized domains is not restored into the RESO-only context', async () => {
+    const app = await background();
+    await app.register(pair, true, '0', 5);
+    await app.authState(7, true);
+    const local = structuredClone(app.state.local);
+    local.contextSettings['0'].cookieDomains = ['example.com'];
+    const session = structuredClone(app.state.session);
+    session.reauthContexts['0'].cookieDomains = ['example.com'];
+    const resumed = await background({ local, session });
+    assert.deepEqual([...resumed.context().settings.cookieDomains], ['.reso.ru']);
+    assert.equal(resumed.context().latestRevision, -1);
+    assert.equal(resumed.context().recovery, null);
 });
 
 test('legacy settings migrate only to the regular context; private starts blank and disabled', async () => {
@@ -1068,7 +1104,7 @@ test('persisted revision is rejected for changed settings or a different tab lif
     await app.register(pair, true, '0', 5);
     await app.authState(7, false);
     for (const changes of [
-        { account: 'another' }, { serverUrl: 'ws://other:52314' }, { cookieDomains: ['example.com'] },
+        { account: 'another' }, { serverUrl: 'ws://other:52314' },
     ]) {
         const local = structuredClone(app.state.local);
         Object.assign(local.contextSettings['0'], changes);
@@ -2019,7 +2055,7 @@ test('an old cookie read cannot release a refresh owned by the replacement conne
 
 for (const privateContext of [false, true]) {
     test(`an invalid enabled configuration can be disabled without accepting new settings (private=${privateContext})`, async () => {
-        const invalid = { ...config('legacy'), serverUrl: 'https://mnas:52314' };
+        const invalid = { ...config('legacy'), serverUrl: 'https://localhost:52314' };
         const app = await background(privateContext ? {
             tabs: [normalTab, privateTab],
             session: { privateContexts: { '1': { settings: invalid, tabIds: [9], contextId: 'private-config' } } },
@@ -2041,7 +2077,7 @@ for (const privateContext of [false, true]) {
             ? app.state.session.privateContexts[storeId].settings : app.state.local.contextSettings[storeId];
         assert.equal(persisted.enabled, false);
         await assert.rejects(app.save({ enabled: true }, tabId), /ws:\/\//);
-        await app.save({ serverUrl: 'ws://mnas:52314', enabled: true }, tabId);
+        await app.save({ serverUrl: 'ws://localhost:52314', enabled: true }, tabId);
         assert.ok(app.context(storeId).socket);
         if (privateContext) assert.equal(app.context('0').settings.enabled, true);
         await assert.rejects(app.request({ type: 'disableContext', tabId, contextId: 'stale-id' }), /Контекст/);

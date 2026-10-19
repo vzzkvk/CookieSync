@@ -36,8 +36,9 @@ An existing main unit is preserved as a numbered backup.
 The `--no-tls` argument is configured in the drop-in file
 `/etc/systemd/system/cookiesync.service.d/cookiesync-transport.conf`.
 
-Use `ws://mnas:52314` or your server's address in the extension. Check access to
-TCP port `52314`, routing, firewall settings, and resolution of the name `mnas`.
+The extension defaults to `ws://localhost:52314`. `localhost` is the computer
+running the browser. For a server on another machine, enter its IP address or
+DNS name and check TCP port `52314`, routing and firewall settings.
 
 If a service with another name is already in use, update that service instead
 of starting a second instance on the same port.

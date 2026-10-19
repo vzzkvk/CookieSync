@@ -761,15 +761,19 @@ Do not rely on in-memory variables surviving background-worker destruction.
 
 # Cookie handling
 
-Domains are configurable. Stored as a list in browser settings under `cookieDomains`.
+The extension currently supports only RESO. The popup has no domain input.
+Normalize internal `cookieDomains` to `['.reso.ru']`, ignoring legacy configurable
+`cookieDomain` / `cookieDomains` values. Keep reads and writes scoped to the context's
+cookie store. The default server URL and placeholder are `ws://localhost:52314`;
+preserve explicitly saved server URLs.
 
-Default:
+Fixed target domain:
 
 ```text
 reso.ru
 ```
 
-Correct domain matching (each configured target):
+Correct domain matching:
 
 ```javascript
 domain === target ||
@@ -788,7 +792,7 @@ because it matches unrelated domains such as:
 evilreso.ru
 ```
 
-A cookie belongs to the account if it matches at least one configured domain.
+A cookie is eligible for synchronization if its domain is reso.ru or a subdomain.
 
 ---
 
