@@ -58,8 +58,8 @@ python3 -m venv .venv
 на той же машине можно использовать `ws://127.0.0.1:52314`. Имя `mnas` из
 настройки расширения по умолчанию должно разрешаться в вашей сети/VPN.
 
-Для Windows используйте команды из [отдельной инструкции](cookieserver/WINDOWS.ru.md)
-и при необходимости [шаблон конфигурации](cookieserver/server_config.windows.conf.example).
+Для Windows используйте команды из [отдельной инструкции](cookieserver/WINDOWS.ru.md).
+На обеих платформах используется общий `cookieserver/server_config.conf`.
 Linux-установщик рассчитан на `/opt/CookieSync` и создаёт `cookiesync.service`;
 подготовка окружения и режимы `--tls` / `--no-tls` описаны в [LINUX.ru.md](cookieserver/LINUX.ru.md).
 

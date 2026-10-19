@@ -58,8 +58,8 @@ With the current configuration, the server listens on `0.0.0.0:52314`. Set
 `ws://<server-address>:52314` in the extension; on the same machine you can use
 `ws://127.0.0.1:52314`. The default hostname `mnas` must resolve in your network/VPN.
 
-For Windows, follow the [dedicated guide](cookieserver/WINDOWS.md) and, if needed,
-use the [configuration template](cookieserver/server_config.windows.conf.example).
+For Windows, follow the [dedicated guide](cookieserver/WINDOWS.md).
+Both platforms use the same `cookieserver/server_config.conf`.
 The Linux installer targets `/opt/CookieSync` and creates `cookiesync.service`;
 environment setup and `--tls` / `--no-tls` modes are described in [LINUX.md](cookieserver/LINUX.md).
 

@@ -28,16 +28,15 @@ New-Item -ItemType Directory -Force .\cookieserver\accounts, .\cookieserver\keys
 
 ## 2. Конфигурация
 
-Сервер всегда читает **`cookieserver\server_config.conf`**. Имеющийся конфиг
-подходит и для Windows. Для новой установки можно взять подготовленный шаблон:
+Сервер всегда читает **`cookieserver\server_config.conf`**. Для Linux и Windows
+используется общий конфиг; редактируйте его непосредственно:
 
 ```powershell
-Copy-Item .\cookieserver\server_config.windows.conf.example .\cookieserver\server_config.conf
 notepad .\cookieserver\server_config.conf
 ```
 
-Копирование заменяет существующий конфиг: если он уже настроен, сначала сохраните
-его копию или перенесите нужные значения вручную. Сохраняйте конфиг в UTF-8 без BOM.
+При редактировании действующей установки сохраняйте существующие настройки.
+Записывайте файл в UTF-8 без BOM. Примеры TLS-путей для Windows приведены ниже.
 
 Основные параметры:
 

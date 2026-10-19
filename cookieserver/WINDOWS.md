@@ -28,16 +28,15 @@ below invoke the virtual environment's `python.exe` directly.
 
 ## 2. Configuration
 
-The server always reads **`cookieserver\server_config.conf`**. The existing
-configuration also works on Windows. For a new installation, you can use the template:
+The server always reads **`cookieserver\server_config.conf`**. The same configuration
+is used on Linux and Windows; edit it directly:
 
 ```powershell
-Copy-Item .\cookieserver\server_config.windows.conf.example .\cookieserver\server_config.conf
 notepad .\cookieserver\server_config.conf
 ```
 
-Copying replaces the existing configuration. If it is already configured, back it
-up first or transfer the required settings manually. Save as UTF-8 without a BOM.
+Preserve existing settings when editing an established deployment. Save as UTF-8
+without a BOM. Windows TLS path examples are provided below.
 
 Main settings:
 
