@@ -3,15 +3,27 @@
 **English** | [Русский](LINUX.ru.md)
 
 This guide uses `/opt/CookieSync`, Python 3.11+, and the `cookiesync.service`
-system service. Copy the project into that directory before installation.
+system service on a Linux host booted with systemd. The supplied unit leaves
+`User` and `Group` unset and therefore runs as root unless a custom drop-in overrides it.
 
 ## Preparation
 
-On Ubuntu/Debian, install Python and venv support:
+On Ubuntu/Debian, install Git, Python and venv support, then clone the repository:
 
 ```bash
 sudo apt update
-sudo apt install python3 python3-venv
+sudo apt install git python3 python3-venv
+sudo mkdir -p /opt
+sudo git clone https://github.com/the-repo-hub/CookieSync.git /opt/CookieSync
+```
+
+`git clone` creates `/opt/CookieSync` and downloads the project into it. These
+commands are for a first installation: the destination must be absent or empty.
+For an existing deployment, update its checkout instead of cloning over it.
+After cloning, create the virtual environment on this machine and install the
+server dependencies:
+
+```bash
 cd /opt/CookieSync
 sudo python3 -m venv .venv
 sudo .venv/bin/python -m pip install -r cookieserver/requirements.txt
@@ -29,8 +41,8 @@ From the project root:
 sudo bash cookieserver/install.sh --no-tls
 ```
 
-The installer creates the `cookiesync` system user, assigns ownership of the
-accounts directory, copies `cookieserver/resoserver.service` to
+The installer creates the accounts directory if needed, preserves existing data
+and directory permissions, and copies `cookieserver/resoserver.service` to
 `/etc/systemd/system/cookiesync.service`, and configures execution through `.venv`.
 An existing main unit is preserved as a numbered backup.
 The `--no-tls` argument is configured in the drop-in file
@@ -53,12 +65,8 @@ cert = /opt/CookieSync/cookieserver/keys/fullchain.pem
 key = /opt/CookieSync/cookieserver/keys/privkey.pem
 ```
 
-Ensure the `cookiesync` user can read these files and traverse their parent
-directories. If the user does not exist yet, create it before setting permissions:
-
-```bash
-sudo useradd --system --user-group --home-dir /opt/CookieSync --no-create-home --shell /usr/sbin/nologin cookiesync
-```
+Provision readable certificate/key files before starting the TLS service.
+The installer does not generate certificates or keys.
 
 After preparing the certificates:
 
@@ -70,6 +78,34 @@ Use `wss://<certificate-hostname>:52314` in the extension. Running the installer
 without arguments defaults to TLS but preserves existing drop-ins. Use `--tls`
 or `--no-tls` to explicitly select the transport. Other user-defined drop-ins
 are also taken into account by systemd.
+
+## Installer checks and scope
+
+`install.sh` requires root, a running systemd host, the project at `/opt/CookieSync`,
+an executable `.venv/bin/python`, installed server dependencies, a readable
+`server_config.conf`, and the adjacent `resoserver.service` template. It checks
+imports and config parsing with `python -m cookieserver.manage --help` before
+changing service files. This check does not start the server or validate TLS keys.
+The final commands restart the service and display its current status; reported
+failures include a journal command. Confirm application startup using the journal
+and an extension connection.
+
+Read-only checks from the repository root:
+
+```bash
+bash -n cookieserver/install.sh
+bash cookieserver/install.sh --help
+```
+
+With development dependencies installed, run the isolated installer tests:
+
+```bash
+.venv/bin/python -m pytest -q tests/test_install.py
+```
+
+They execute a copy of the script with temporary filesystem roots and mocked
+privileged commands. They do not install a service on the test machine. After
+a real installation, check the actual service and its journal as shown below.
 
 ## Management and updates
 

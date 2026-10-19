@@ -3,15 +3,27 @@
 [English](LINUX.md) | **Русский**
 
 Ниже используется каталог `/opt/CookieSync`, Python 3.11+ и системный сервис
-`cookiesync.service`. Скопируйте проект в этот каталог перед установкой.
+`cookiesync.service` на Linux, загруженном с systemd. В шаблоне не заданы `User`
+и `Group`, поэтому сервис работает от root, если это не переопределено своим drop-in.
 
 ## Подготовка
 
-На Ubuntu/Debian установите Python и поддержку venv:
+На Ubuntu/Debian установите Git, Python и поддержку venv, затем клонируйте репозиторий:
 
 ```bash
 sudo apt update
-sudo apt install python3 python3-venv
+sudo apt install git python3 python3-venv
+sudo mkdir -p /opt
+sudo git clone https://github.com/the-repo-hub/CookieSync.git /opt/CookieSync
+```
+
+`git clone` создаёт `/opt/CookieSync` и загружает в него проект. Эти команды
+предназначены для первой установки: целевой каталог должен отсутствовать или быть
+пустым. Для существующей установки обновляйте её рабочую копию, а не клонируйте
+репозиторий поверх неё. После клонирования создайте виртуальное окружение на этой
+машине и установите зависимости сервера:
+
+```bash
 cd /opt/CookieSync
 sudo python3 -m venv .venv
 sudo .venv/bin/python -m pip install -r cookieserver/requirements.txt
@@ -30,8 +42,8 @@ sudo .venv/bin/python -m pip install -r cookieserver/requirements.txt
 sudo bash cookieserver/install.sh --no-tls
 ```
 
-Установщик создаёт пользователя `cookiesync`, выдаёт ему каталог аккаунтов,
-копирует шаблон `cookieserver/resoserver.service` в
+Установщик создаёт каталог аккаунтов, если его ещё нет, сохраняет существующие
+данные и права каталога, копирует шаблон `cookieserver/resoserver.service` в
 `/etc/systemd/system/cookiesync.service` и настраивает запуск через `.venv`.
 Существующий основной unit сохраняется в нумерованной резервной копии.
 Параметр `--no-tls` задаётся отдельным drop-in-файлом
@@ -54,13 +66,8 @@ cert = /opt/CookieSync/cookieserver/keys/fullchain.pem
 key = /opt/CookieSync/cookieserver/keys/privkey.pem
 ```
 
-Убедитесь, что пользователь `cookiesync` может читать эти файлы и проходить
-через их родительские каталоги. Если пользователя ещё нет, создайте его перед
-настройкой прав доступа:
-
-```bash
-sudo useradd --system --user-group --home-dir /opt/CookieSync --no-create-home --shell /usr/sbin/nologin cookiesync
-```
+Подготовьте читаемые файлы сертификата и ключа перед запуском TLS-сервиса.
+Установщик не генерирует сертификаты и ключи.
 
 После подготовки сертификатов:
 
@@ -72,6 +79,34 @@ sudo bash cookieserver/install.sh --tls
 Вызов установщика без аргументов использует TLS по умолчанию, но сохраняет
 ранее созданные drop-in-настройки. Для явного переключения используйте `--tls`
 или `--no-tls`. Другие пользовательские drop-in-файлы также учитываются systemd.
+
+## Проверки и область действия установщика
+
+`install.sh` требует root, работающий systemd, проект в `/opt/CookieSync`,
+исполняемый `.venv/bin/python`, установленные зависимости сервера, читаемый
+`server_config.conf` и расположенный рядом шаблон `resoserver.service`.
+До изменения файлов сервиса он проверяет импорты и разбор конфигурации командой
+`python -m cookieserver.manage --help`. Эта проверка не запускает сервер и не
+проверяет TLS-ключи. Финальные команды перезапускают сервис и показывают его
+текущий статус; при сообщённой ошибке выводится команда просмотра журнала.
+Фактический запуск приложения проверяйте по журналу и подключению расширения.
+
+Проверки без установки, из корня репозитория:
+
+```bash
+bash -n cookieserver/install.sh
+bash cookieserver/install.sh --help
+```
+
+После установки зависимостей для разработки доступны изолированные тесты:
+
+```bash
+.venv/bin/python -m pytest -q tests/test_install.py
+```
+
+Они запускают копию скрипта с временными каталогами и подменёнными привилегированными
+командами, не устанавливая сервис на тестовой машине. После реальной установки
+проверьте сам сервис и его журнал командами ниже.
 
 ## Управление и обновление
 
